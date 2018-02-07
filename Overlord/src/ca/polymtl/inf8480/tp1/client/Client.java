@@ -14,34 +14,29 @@ public class Client {
 	//FakeServer localServer = null; // Pour tester la latence d'un appel de
 									// fonction normal.
 									
-									
 	private ServerInterface localServerStub = null;
+	
 	private ServerInterface distantServerStub = null;
 	
-	public static int[] tabParam;
+	public static String command = null;
+	public static String filename = null;
 	
 	public static void main(String[] args) {
+		
 		String distantHostname = null;
 		
-		int x = 0;
 		
-		
-
 		if (args.length > 0) {
 			
-			x = Integer.parseInt(args[1]);
-			
-			distantHostname = args[0];
-			
-			
+			//Adresse du serveur
+			//distantHostname = args[0];
+			command = args[0];
+			if (args.length == 2)
+				filename = args[1];			
 		}
-
-		tabParam= new int[((int)Math.pow(10,x))/4];
-		 
 		
-		
-
-		Client client = new Client(distantHostname);
+	
+		Client client = new Client("132.207.12.104");
 		client.run();
 	}
 
@@ -52,24 +47,39 @@ public class Client {
 			System.setSecurityManager(new SecurityManager());
 		}
 
-		localServer = new FakeServer();
+		//localServer = new FakeServer();
+		
 		localServerStub = loadServerStub("127.0.0.1");
 
-		if (distantServerHostname != null) {
-			distantServerStub = loadServerStub(distantServerHostname);
-		}
+		//if (distantServerHostname != null) {
+			//distantServerStub = loadServerStub(distantServerHostname);
+		//}
 	}
 
 	private void run() {
-		appelNormal();
-
-		if (localServerStub != null) {
-			appelRMILocal();
+		
+		
+		if (/*distantServerStub != null && */command != null)
+		{
+			switch(command)
+			{
+				case "list":
+					list();
+					break;
+				case "get":
+					break;
+				case "create":
+					create();
+					break;
+				case "lock":
+					break;
+				case "push":
+					break;
+				default:
+					System.out.println("Commande non reconnue");
+			}
 		}
 
-		if (distantServerStub != null) {
-			appelRMIDistant();
-		}
 	}
 
 	private ServerInterface loadServerStub(String hostname) {
@@ -91,73 +101,45 @@ public class Client {
 	}
 
 
-
-	private void list()
+	private void get()
 	{
 		
 	}
 	private void list()
 	{
-		
+		try
+		{
+			String[] result = localServerStub.list();
+			for (int i = 0; i < result.length; i++)
+			{
+				 System.out.println(result[i]);
+			}
+		}
+		catch (RemoteException e)
+		{
+			System.out.println("Erreur" + e.getMessage());
+		}
 	}
-	private void list()
+	
+	private void create()
+	{
+		try
+		{
+			boolean result = localServerStub.create(filename);
+			System.out.println(result);
+		}
+		catch (RemoteException e)
+		{
+			System.out.println("Erreur" + e.getMessage());
+		}
+	}
+	private void lock()
 	{
 		
 	}
-	private void list()
+	private void push()
 	{
 		
 	}
 	
-
-	private void appelNormal() {
-		long start = System.nanoTime();
-		//int result = localServer.execute(4, 7);
-		int result = localServer.exec(tabParam);
-		long end = System.nanoTime();
-
-		System.out.println("Temps écoulé appel normal: " + (end - start)
-				+ " ns");
-		System.out.println("Résultat appel normal: " + result);
-		
-		//System.out.println((end - start));
-		
-	}
-
-	private void appelRMILocal() {
-		try {
-			long start = System.nanoTime();
-			//int result = localServerStub.execute(4, 7);
-			int result = localServerStub.exec(tabParam);
-			long end = System.nanoTime();
-
-			System.out.println("Temps écoulé appel RMI local: " + (end - start)
-					+ " ns");
-			System.out.println("Résultat appel RMI local: " + result);
-			
-			//System.out.println((end - start));
-			
-		} catch (RemoteException e) {
-			System.out.println("Erreur: " + e.getMessage());
-		}
-	}
-
-	private void appelRMIDistant() {
-		try {
-			long start = System.nanoTime();
-			//int result = distantServerStub.execute(4, 7);
-			int result = distantServerStub.exec(tabParam);
-			long end = System.nanoTime();
-
-			System.out.println("Temps écoulé appel RMI distant: "
-					+ (end - start) + " ns");
-			System.out.println("Résultat appel RMI distant: " + result);*/
-			
-			
-			//System.out.println((end - start));
-			
-		} catch (RemoteException e) {
-			System.out.println("Erreur: " + e.getMessage());
-		}
-	}
 }

@@ -4,6 +4,9 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface ServerInterface extends Remote {
-	int execute(int a, int b) throws RemoteException;
-	int exec(int[] tab) throws RemoteException;
+	String[] list() throws RemoteException;
+	int get(int[] tab) throws RemoteException;
+	boolean create(String filename) throws RemoteException;
+	int lock(int[] tab) throws RemoteException;
+	int push(int[] tab) throws RemoteException;
 }
