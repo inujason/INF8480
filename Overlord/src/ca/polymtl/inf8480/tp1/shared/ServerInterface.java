@@ -7,7 +7,7 @@ import java.util.HashMap;
 
 public interface ServerInterface extends Remote {
 	HashMap<String, String> list() throws RemoteException;
-	int get(int[] tab) throws RemoteException;
+	HashMap<String, String> get(String filename, String checksum) throws RemoteException;
 	boolean create(String filename) throws RemoteException;
 	String lock(String ID, String filename, String checksum) throws RemoteException;
 	int push(int[] tab) throws RemoteException;

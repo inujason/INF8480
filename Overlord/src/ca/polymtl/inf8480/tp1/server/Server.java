@@ -7,6 +7,9 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.File;
 
+import java.io.FileInputStream;
+import java.security.MessageDigest;
+
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 import org.w3c.dom.Element;
@@ -96,9 +99,9 @@ public class Server implements ServerInterface {
 	}
 
 	private void run() {
-		if (System.getSecurityManager() == null) {
-			System.setSecurityManager(new SecurityManager());
-		}
+		//if (System.getSecurityManager() == null) {
+			//System.setSecurityManager(new SecurityManager());
+		//}
 
 		try {
 			ServerInterface stub = (ServerInterface) UnicastRemoteObject
@@ -145,50 +148,121 @@ public class Server implements ServerInterface {
 		return list;
 	}
 	
-	public int get(int[] tab) throws RemoteException {
-		// est ce que on fait laddition?
-		return 0;
+	public HashMap<String, String> get(String filename, String checksum) throws RemoteException {
+		
+		
+		HashMap<String, String> checksumAndFileContent = new HashMap<String, String>();
+		
+		File targetFile = new File(filename+".txt");
+		
+		if (targetFile.isFile())
+		{
+			try 
+			{
+				File serverStateFile = new File("serverState.xml");
+				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+				DocumentBuilder db = dbf.newDocumentBuilder();
+				Document doc;
+				
+				
+				doc = db.parse(serverStateFile);			
+				NodeList nodeList = doc.getElementsByTagName("file");
+				
+				for (int i=0;i<nodeList.getLength();i++)
+				{
+					Element currentElement = (Element)nodeList.item(i);
+					
+					
+					
+					if (currentElement.getAttribute("name").equals(filename))
+					{
+						/*
+						// Si client na pas le fichier
+						if (checksum.equals("0")
+						{
+							String fileContent = readFile(filename+".txt", Charset.UTF_8);
+							checksumAndFileContent.put(currentElement.getAttribute(checksum, fileContent);
+							
+							return checksumAndFileContent;
+						}
+						// si le client a le fichier deja a jour
+						else*/ if (currentElement.getAttribute("checksum").equals(checksum))
+						{			
+							checksumAndFileContent.put("0", "");
+							return checksumAndFileContent;
+						}
+						// Si le client doit le fichier a jour 
+						else 
+						{
+							String fileContent = readFile(filename+".txt", Charset.UTF_8);
+							checksumAndFileContent.put(currentElement.getAttribute(checksum, fileContent);
+							
+							return checksumAndFileContent;
+						}
+					}
+				}
+				//return "Le fichier n'est pas dans serverState";
+			}
+			catch (Exception e){}
+		}
+		else
+		{
+			checksumAndFileContent.put(currentElement.getAttribute("NE", "");
+			return checksumAndFileContent;
+			//return ("Le fichier n'existe pas");
+		}
+		//return "L'operation a echoue";
+		
 	}
 	
 	public boolean create(String filename) throws RemoteException {
 		
 		File newFile = new File(filename+".txt");
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
+
+
+		File serverStateFile = new File("serverState.xml");
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		Document doc;
+		doc = db.parse(serverStateFile);
 		
-		/// TODO MAJ serverState lors de creation 
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////
+		Element root = document.getDocumentElement();
+		
+		Element newFile = document.createElement("file");
+		newFile.setAttribute("name", filename);
+		newFile.setAttribute("isLocked", "non verrouillé");
+		currentElement.setAttribute("lockerID", "");
+		
+		String md5 = null;
+        FileInputStream fileInputStream = null;
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        FileInputStream fis = new FileInputStream("c:\\loging.log");
+
+        byte[] dataBytes = new byte[1024];
+
+        int nread = 0;
+        while ((nread = fis.read(dataBytes)) != -1) {
+          md.update(dataBytes, 0, nread);
+        };
+        byte[] mdbytes = md.digest();
+
+        StringBuffer hexString = new StringBuffer();
+    	for (int i=0;i<mdbytes.length;i++) {
+    		String hex=Integer.toHexString(0xff & mdbytes[i]);
+   	     	if(hex.length()==1) hexString.append('0');
+   	     	hexString.append(hex);
+    	}
+		
+		newFile.setAttribute("checksum", hexString.toString());
+
+		root.appendChild(newFile);
+		
+		
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer t = tf.newTransformer();
+		DOMSource source = new DOMSource(doc);
+		StreamResult output = new StreamResult(new File("serverState.xml"));
+		t.transform(source, output);
 		
 		try
 		{			

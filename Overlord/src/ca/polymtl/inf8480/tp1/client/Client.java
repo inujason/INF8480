@@ -45,9 +45,9 @@ public class Client {
 	public Client(String distantServerHostname) {
 		super();
 
-		if (System.getSecurityManager() == null) {
-			System.setSecurityManager(new SecurityManager());
-		}
+		//if (System.getSecurityManager() == null) {
+		//	System.setSecurityManager(new SecurityManager());
+		//}
 
 		//localServer = new FakeServer();
 		
@@ -104,9 +104,23 @@ public class Client {
 	}
 
 
-	private void get()
+	private void get(String filename, String checksum)
 	{
-		
+		try
+		{
+			HashMap<String, String> result =  new HashMap(localServerStub.list(filename, checksum));
+			for (Map.Entry<String, String> entry : result.entrySet())
+			{
+				String currenthash = entry.getKey();
+				String fileContent = entry.getValue();
+				
+				System.out.println(currenthash+" "+fileContent);
+			}
+		}
+		catch (RemoteException e)
+		{
+			System.out.println("Erreur" + e.getMessage());
+		}
 	}
 	private void list()
 	{
