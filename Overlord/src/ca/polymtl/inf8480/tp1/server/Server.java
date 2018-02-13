@@ -41,12 +41,13 @@ public class Server implements ServerInterface {
 
 		try
 		{
-			File listFiles = new File("test.xml");
+			File serverStateFile = new File("serverState.xml");
 			
 
-			if (!listFiles.isFile())
+			if (!serverStateFile.isFile())
 			{
 			
+				
 				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 				DocumentBuilder db = dbf.newDocumentBuilder();
 				
@@ -58,7 +59,7 @@ public class Server implements ServerInterface {
 				TransformerFactory tf = TransformerFactory.newInstance();
 				Transformer t = tf.newTransformer();
 				DOMSource source = new DOMSource(doc);
-				StreamResult output = new StreamResult(new File("test.xml"));
+				StreamResult output = new StreamResult(new File("serverState.xml"));
 				
 				//listFiles.createNewFile();
 
@@ -71,8 +72,8 @@ public class Server implements ServerInterface {
 				DocumentBuilder db = dbf.newDocumentBuilder();
 				Document doc;
 				
-				doc = db.parse(listFiles);			
-				NodeList nodeList = doc.getElementsByTagName("file");
+				doc = db.parse(serverStateFile);			
+				nodeList = doc.getElementsByTagName("file");
 				/*
 				for ( int i=0; i<nodeList.getLength(); i++)
 				{
@@ -130,16 +131,17 @@ public class Server implements ServerInterface {
 		
 		if (nbFichier == 0)
 		{
-			
+			list.put("0", "fichiers");
 		}
 		else
-		{
+		{		
 			for ( int i=0; i<nbFichier; i++)
 				{
 					Element currentNode = (Element)nodeList.item(i);
+					
 					list.put(currentNode.getAttribute("name"), currentNode.getAttribute("isLocked"));
 				}
-		}
+		}	
 		return list;
 	}
 	
@@ -147,9 +149,46 @@ public class Server implements ServerInterface {
 		// est ce que on fait laddition?
 		return 0;
 	}
+	
 	public boolean create(String filename) throws RemoteException {
 		
 		File newFile = new File(filename+".txt");
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		
+		/// TODO MAJ serverState lors de creation 
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
 		
 		try
 		{			
@@ -160,14 +199,75 @@ public class Server implements ServerInterface {
 
 		return (newFile.isFile());
 	}
-	public int lock(int[] tab) throws RemoteException {
-		// est ce que on fait laddition?
-		return 0;
+	
+	public String lock(String ID, String filename, String checksum) throws RemoteException {
+		
+		File targetFile = new File(filename+".txt");
+		System.out.println("111111111111111111111");
+		if (targetFile.isFile())
+		{
+			try 
+			{
+				File serverStateFile = new File("serverState.xml");
+				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+				DocumentBuilder db = dbf.newDocumentBuilder();
+				Document doc;
+				
+				System.out.println("222222222222222222");
+				
+				doc = db.parse(serverStateFile);			
+				NodeList nodeList = doc.getElementsByTagName("file");
+				
+				for (int i=0;i<nodeList.getLength();i++)
+				{
+					System.out.println("333333333333333333");
+					Element currentElement = (Element)nodeList.item(i);
+					
+					System.out.println(currentElement.getAttribute("name"));
+					System.out.println(filename);				
+					if (currentElement.getAttribute("name").equals(filename))
+					{
+						System.out.println("getAtt============filename???");
+						if (currentElement.getAttribute("isLocked").equals("verrouillé"))
+						{						
+							System.out.println("4444444444444444444");
+							return "Le fichier est verrouille par le client au ID:" + currentElement.getAttribute("lockerID");
+						}
+						else if (currentElement.getAttribute("isLocked").equals("non verrouillé"))
+						{
+							System.out.println("555555555555555555");
+							// Et le checksum dans tout ca?
+							currentElement.setAttribute("isLocked", "verrouillé");
+							currentElement.setAttribute("lockerID", ID);
+							
+							TransformerFactory tf = TransformerFactory.newInstance();
+							Transformer t = tf.newTransformer();
+							DOMSource source = new DOMSource(doc);
+							StreamResult output = new StreamResult(new File("serverState.xml"));
+							t.transform(source, output);
+							return "Le fichier est verrouille";
+						}
+					}
+				}
+				return "Le fichier n'est pas dans serverState";
+			}
+			catch (Exception e){}
+		}
+		else
+		{
+			return ("Le fichier n'existe pas");
+		}
+		return "L'operation a echoue";
 	}
+	
 	public int push(int[] tab) throws RemoteException {
 		// est ce que on fait laddition?
 		return 0;
 	}
 	
+	public int CreateClientID(int[] tab) throws RemoteException {
+		// est ce que on fait laddition?
+		return 0;
+	}
 	
 }

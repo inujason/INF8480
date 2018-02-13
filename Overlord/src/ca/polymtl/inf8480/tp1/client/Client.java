@@ -74,6 +74,7 @@ public class Client {
 					create();
 					break;
 				case "lock":
+					lock();
 					break;
 				case "push":
 					break;
@@ -131,7 +132,10 @@ public class Client {
 		try
 		{
 			boolean result = localServerStub.create(filename);
-			System.out.println(result);
+			if (result)
+				System.out.println("Fichier est ajoute");
+			else
+				System.out.println("Operation a echoue");
 		}
 		catch (RemoteException e)
 		{
@@ -140,11 +144,25 @@ public class Client {
 	}
 	private void lock()
 	{
-		//verrouillé
+		try
+		{
+			String result = localServerStub.lock("H1a2r3d4y"/*ID*/, filename, "checksumLOL"/*checksum*/);
+			System.out.println(result);
+		}
+		catch (RemoteException e)
+		{
+			System.out.println("Erreur" + e.getMessage());
+		}
 	}
 	private void push()
 	{
 		
 	}
+	
+	private void CreateClientID()
+	{
+		
+	}
+
 	
 }

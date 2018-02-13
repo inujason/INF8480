@@ -9,6 +9,7 @@ public interface ServerInterface extends Remote {
 	HashMap<String, String> list() throws RemoteException;
 	int get(int[] tab) throws RemoteException;
 	boolean create(String filename) throws RemoteException;
-	int lock(int[] tab) throws RemoteException;
+	String lock(String ID, String filename, String checksum) throws RemoteException;
 	int push(int[] tab) throws RemoteException;
+	int CreateClientID(int[] tab) throws RemoteException;
 }
