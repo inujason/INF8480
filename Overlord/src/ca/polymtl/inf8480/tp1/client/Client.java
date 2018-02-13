@@ -6,6 +6,8 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.lang.Math;
+import java.util.Map;
+import java.util.HashMap;
 
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 
@@ -109,10 +111,13 @@ public class Client {
 	{
 		try
 		{
-			String[] result = localServerStub.list();
-			for (int i = 0; i < result.length; i++)
+			HashMap<String, String> result =  new HashMap(localServerStub.list());
+			for (Map.Entry<String, String> entry : result.entrySet())
 			{
-				 System.out.println(result[i]);
+				String currentName = entry.getKey();
+				String currentLock = entry.getValue();
+				
+				System.out.println(currentName+" "+currentLock);
 			}
 		}
 		catch (RemoteException e)
@@ -135,7 +140,7 @@ public class Client {
 	}
 	private void lock()
 	{
-		
+		//verrouillé
 	}
 	private void push()
 	{

@@ -6,18 +6,31 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.File;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONArray;
-import org.json.simple.parser.ParseException;
-import org.json.simple.parser.JSONParser
-import java.nio.charset.Charset;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.DocumentBuilder;
+import org.w3c.dom.Element;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import java.nio.charset.StandardCharsets;
+
+import java.util.Map;
+import java.util.HashMap;
 
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 
 public class Server implements ServerInterface {
 
 
-	private static JSONArray state;
+	private static NodeList nodeList;
 
 
 	public static void main(String[] args) 
@@ -25,33 +38,49 @@ public class Server implements ServerInterface {
 		Server server = new Server();
 		server.run();
 		
-		state = new JSONArray();
-		
-		
-	
+
 		try
 		{
+			File listFiles = new File("test.xml");
 			
-			File listFiles = new File("state.json");
-			if (!listFiles.isExist())
+
+			if (!listFiles.isFile())
 			{
-				listFiles.createNewFile();
+			
+				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+				DocumentBuilder db = dbf.newDocumentBuilder();
+				
+				// Set the root element
+				Document doc = db.newDocument();
+				Element root = doc.createElement("root");
+				doc.appendChild(root);
+				
+				TransformerFactory tf = TransformerFactory.newInstance();
+				Transformer t = tf.newTransformer();
+				DOMSource source = new DOMSource(doc);
+				StreamResult output = new StreamResult(new File("test.xml"));
+				
+				//listFiles.createNewFile();
+
+				// Saving..
+				t.transform(source, output);
 			}
 			else
-			{
-				JSONParser parser = new JSONParser();
-				String jsonString = Files.toString(listFiles, Charsets.UTF_8);
-				try
+			{			
+				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+				DocumentBuilder db = dbf.newDocumentBuilder();
+				Document doc;
+				
+				doc = db.parse(listFiles);			
+				NodeList nodeList = doc.getElementsByTagName("file");
+				/*
+				for ( int i=0; i<nodeList.getLength(); i++)
 				{
+					Element currentNode = (Element)nodeList.item(i);
 					
-					state = (JSONArray)parser.parse(jsonString);
-					//Object ocj = parser.parse(jsonString);
-					//JSONArray jsonArray = (JSONArray)obj;
-				}
-				catch (ParseException e)
-				{
-					System.out.println(e.getMessage());
-				}
+					System.out.println("File " + i + " : "+ currentNode.getAttribute("name") + " " + currentNode.getAttribute("isLocked"));
+				}*/
+				
 			}
 		}
 		catch (Exception e)
@@ -59,17 +88,6 @@ public class Server implements ServerInterface {
 			System.out.println(e.getMessage());
 		}
 		
-		
-		// TODO : A CONTINUER A PARTIR DICI
-		// TESTER si ca cree le JSON
-		// TESTER si il lit un JSON existant
-		// FINIR OVERLOAD
-		// FINIR le TP
-		
-		for (int i = 0; i < JSONArray.size(); i++)
-		{
-			
-		}
 	}
 
 	public Server() {
@@ -103,9 +121,26 @@ public class Server implements ServerInterface {
 	 * paramètre.
 	 */
 	@Override
-	public String[] list() throws RemoteException {
-		String[] liste = {"SUCCESS", "FIN"};
-		return liste;
+	public HashMap<String, String> list() throws RemoteException {
+		
+		
+		HashMap<String, String> list = new HashMap<String, String>();
+		
+		int nbFichier = nodeList.getLength();
+		
+		if (nbFichier == 0)
+		{
+			
+		}
+		else
+		{
+			for ( int i=0; i<nbFichier; i++)
+				{
+					Element currentNode = (Element)nodeList.item(i);
+					list.put(currentNode.getAttribute("name"), currentNode.getAttribute("isLocked"));
+				}
+		}
+		return list;
 	}
 	
 	public int get(int[] tab) throws RemoteException {
