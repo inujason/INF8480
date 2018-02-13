@@ -6,12 +6,19 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.File;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import java.io.FileWriter;
+import java.io.FileReader;
 import java.io.FileInputStream;
+
 import java.security.MessageDigest;
+
+import java.io.BufferedReader;
+import java.io.IOException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -37,7 +44,7 @@ import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 public class Server implements ServerInterface {
 
 
-	private static NodeList nodeList;
+	//private static NodeList nodeList;
 
 
 	public static void main(String[] args) 
@@ -80,7 +87,7 @@ public class Server implements ServerInterface {
 				Document doc;
 				
 				doc = db.parse(serverStateFile);			
-				nodeList = doc.getElementsByTagName("file");
+				NodeList nodeList = doc.getElementsByTagName("file");
 				/*
 				for ( int i=0; i<nodeList.getLength(); i++)
 				{
@@ -103,9 +110,9 @@ public class Server implements ServerInterface {
 	}
 
 	private void run() {
-		//if (System.getSecurityManager() == null) {
-			//System.setSecurityManager(new SecurityManager());
-		//}
+		if (System.getSecurityManager() == null) {
+			System.setSecurityManager(new SecurityManager());
+		}
 
 		try {
 			ServerInterface stub = (ServerInterface) UnicastRemoteObject
@@ -131,24 +138,37 @@ public class Server implements ServerInterface {
 	@Override
 	public HashMap<String, String> list() throws RemoteException {
 		
-		
+		File serverStateFile = new File("serverState.xml");
 		HashMap<String, String> list = new HashMap<String, String>();
-		
-		int nbFichier = nodeList.getLength();
-		
-		if (nbFichier == 0)
+		try
 		{
-			list.put("0", "fichiers");
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document doc;
+			
+			doc = db.parse(serverStateFile);			
+			NodeList nodeList = doc.getElementsByTagName("file");
+			
+			
+			
+			
+			int nbFichier = nodeList.getLength();
+			
+			if (nbFichier == 0)
+			{
+				list.put("0", "fichiers");
+			}
+			else
+			{		
+				for ( int i=0; i<nbFichier; i++)
+					{
+						Element currentNode = (Element)nodeList.item(i);
+						
+						list.put(currentNode.getAttribute("name"), currentNode.getAttribute("isLocked"));
+					}
+			}	
 		}
-		else
-		{		
-			for ( int i=0; i<nbFichier; i++)
-				{
-					Element currentNode = (Element)nodeList.item(i);
-					
-					list.put(currentNode.getAttribute("name"), currentNode.getAttribute("isLocked"));
-				}
-		}	
+		catch (Exception e) {}
 		return list;
 	}
 	
@@ -225,6 +245,7 @@ public class Server implements ServerInterface {
 	public String create(String filename) throws RemoteException {
 		
 		File newFileServer = new File(filename+".txt");
+
 
 		if(!newFileServer.isFile())
  		{
@@ -303,8 +324,7 @@ public class Server implements ServerInterface {
 		DOMSource source = new DOMSource(doc);
 		StreamResult output = new StreamResult(new File("serverState.xml"));
 		t.transform(source, output);
-		
-					
+			
 			
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
@@ -374,9 +394,103 @@ public class Server implements ServerInterface {
 		return "L'operation a echoue";
 	}
 	
-	public int push(int[] tab) throws RemoteException {
-		// est ce que on fait laddition?
-		return 0;
+	public String push(String ID, String filename, String contenu) throws RemoteException {
+	
+        File targetFile = new File(filename+".txt");
+        if (targetFile.isFile())
+        {
+            try
+            {
+                File serverStateFile = new File("serverState.xml");
+                DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                DocumentBuilder db = dbf.newDocumentBuilder();
+                Document doc;
+                
+                doc = db.parse(serverStateFile);
+                NodeList nodeList = doc.getElementsByTagName("file");
+                
+                for (int i=0;i<nodeList.getLength();i++)
+                {
+                    Element currentElement = (Element)nodeList.item(i);
+    
+                    if (currentElement.getAttribute("name").equals(filename))
+                    {
+						System.out.println("le nom est bon");
+                        if (currentElement.getAttribute("isLocked").equals("verrouillé"))
+                        {
+                            if (currentElement.getAttribute("lockerID").equals(ID))
+                            {
+                                //on fait les modifs
+                                targetFile.delete();
+                                File target = new File(filename+".txt");
+                                FileWriter fw = new FileWriter(target, false);
+                                fw.write(contenu);
+                                fw.close();
+                                currentElement.setAttribute("isLocked", "non verrouillé");
+                                currentElement.setAttribute("lockerID", "");
+                                
+                                TransformerFactory tf = TransformerFactory.newInstance();
+								Transformer t = tf.newTransformer();
+								DOMSource source = new DOMSource(doc);
+								StreamResult output = new StreamResult(new File("serverState.xml"));
+								t.transform(source, output);
+                                return "Le push a bien ete effectue";
+                            }
+                            else
+                            {
+                                 return "Le fichier est verrouille par le client au ID:" + currentElement.getAttribute("lockerID");
+                            }
+                           
+                        }
+                        else if (currentElement.getAttribute("isLocked").equals("non verrouillé"))
+                        {
+                            return "Le fichier n'est pas verrouille, modification impossible";
+                        }
+                    }
+                }
+                return "Le fichier n'est pas dans serverState";
+            }
+            catch (Exception e){}
+        }
+        else
+        {
+            return ("Le fichier n'existe pas");
+        }
+        return "L'operation a echoue";
+	}
+	
+	public HashMap<String, String> syncLocalDirectory() throws RemoteException {
+    
+		try
+		{
+			File serverStateFile = new File("serverState.xml");
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document doc;
+			
+			doc = db.parse(serverStateFile);
+			NodeList nodeList = doc.getElementsByTagName("file");
+			
+			HashMap<String, String> list = new HashMap<String, String>();
+			
+			for (int i=0;i<nodeList.getLength();i++)
+			{
+				Element currentElement = (Element)nodeList.item(i);
+				String nomFile = currentElement.getAttribute("name");
+				
+				File file = new File(nomFile + ".txt");
+				FileInputStream fis = new FileInputStream(file);
+				byte[] data = new byte[(int) file.length()];
+				fis.read(data);
+				fis.close();
+				String str = new String(data, "UTF-8");
+				list.put(nomFile, str);
+				
+			}
+			return list;
+		}
+		catch (Exception e){}      
+        return null;
 	}
 	
 	public int CreateClientID(int[] tab) throws RemoteException {

@@ -8,6 +8,10 @@ import java.rmi.registry.Registry;
 import java.lang.Math;
 import java.util.Map;
 import java.util.HashMap;
+import java.io.FileWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,9 +57,9 @@ public class Client {
 	public Client(String distantServerHostname) {
 		super();
 
-		//if (System.getSecurityManager() == null) {
-		//	System.setSecurityManager(new SecurityManager());
-		//}
+		if (System.getSecurityManager() == null) {
+			System.setSecurityManager(new SecurityManager());
+		}
 
 		//localServer = new FakeServer();
 		
@@ -86,6 +90,10 @@ public class Client {
 					lock();
 					break;
 				case "push":
+					push();
+					break;
+				case "syncLocalDirectory":
+					syncLocalDirectory();
 					break;
 				default:
 					System.out.println("Commande non reconnue");
@@ -115,6 +123,7 @@ public class Client {
 
 	private void get()
 	{
+
 	
 		String checksum = "";
 		try
@@ -172,6 +181,8 @@ System.out.println("HASh MAKKING");
 		{
 			System.out.println("Erreur" + e.getMessage());
 		}
+
+
 	}
 	private void list()
 	{
@@ -219,7 +230,65 @@ System.out.println("HASh MAKKING");
 	}
 	private void push()
 	{
+		try
+		{
+			////////////////////////////////////////
+			////////////////////////////////////////
+			////////////////////////////////////////
+			////////////////////////////////////////
+			////////////////////////////////////////
+			////////////////////////////////////////
+			//TODO change le id 
+			////////////////////////////////////////
+			////////////////////////////////////////
+			////////////////////////////////////////
+			////////////////////////////////////////
+			////////////////////////////////////////
+			
+			File file = new File(filename + ".txt");
+			FileInputStream fis = new FileInputStream(file);
+			byte[] data = new byte[(int) file.length()];
+			fis.read(data);
+			fis.close();
+			String content = new String(data, "UTF-8");
+			String result = localServerStub.push("H1a2r3d4y" /*ID*/, filename, content);
+			System.out.println(result);
+		}
+		catch (Exception e)
+		{
+			System.out.println("Erreur" + e.getMessage());
+		}
+	}
+	
+	private void syncLocalDirectory()
+	{
+		try
+		{
+			//TODO change le content et le id 
+			HashMap<String, String> result =  new HashMap(localServerStub.syncLocalDirectory());
+			for (Map.Entry<String, String> entry : result.entrySet())
+			{
+				//Pour chaque fichier on supprime le fichier s'il existe et on le rempli avec le content recu
+				String currentName = entry.getKey();
+				String currentContent = entry.getValue();
+				
+				File targetFile = new File(currentName+".txt");
+				if(targetFile.isFile())
+				{
+					targetFile.delete();
+					targetFile = new File(currentName+".txt");
+				}
+				FileWriter fw = new FileWriter(targetFile, false);
+				fw.write(currentContent);
+				fw.close();
 		
+			}
+			System.out.println("Done yeah!!!!");
+		}
+		catch (Exception e)
+		{
+			System.out.println("Erreur" + e.getMessage());
+		}
 	}
 	
 	private void CreateClientID()
