@@ -9,6 +9,14 @@ import java.lang.Math;
 import java.util.Map;
 import java.util.HashMap;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+import java.io.FileInputStream;
+import java.security.MessageDigest;
+
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 
 public class Client {
@@ -69,6 +77,7 @@ public class Client {
 					list();
 					break;
 				case "get":
+					get();
 					break;
 				case "create":
 					create();
@@ -104,11 +113,53 @@ public class Client {
 	}
 
 
-	private void get(String filename, String checksum)
+	private void get()
 	{
+	
+		String checksum = "";
 		try
 		{
-			HashMap<String, String> result =  new HashMap(localServerStub.list(filename, checksum));
+			File targetFile = new File(filename+".txt");
+			if (!targetFile.isFile())
+			{
+				checksum = "";
+			}
+			else
+			{
+				StringBuffer hexString = new StringBuffer();
+				try
+				{
+					String md5 = null;
+					FileInputStream fileInputStream = null;
+					MessageDigest md = MessageDigest.getInstance("MD5");
+					FileInputStream fis = new FileInputStream(filename+".txt");
+
+System.out.println("HASh MAKKING");
+			
+				
+					byte[] dataBytes = new byte[1024];
+
+					int nread = 0;
+					while ((nread = fis.read(dataBytes)) != -1) {
+					  md.update(dataBytes, 0, nread);
+					};
+					byte[] mdbytes = md.digest();
+
+					//hexString = new StringBuffer();
+					for (int i=0;i<mdbytes.length;i++) {
+						String hex=Integer.toHexString(0xff & mdbytes[i]);
+			   	     	if(hex.length()==1) hexString.append('0');
+			   	     	hexString.append(hex);
+					}
+					checksum = hexString.toString();	
+					System.out.println("HASh MADE:" + hexString.toString());				
+				} catch (Exception e) {}
+				
+			}
+			
+			System.out.println("GET AVEC CHECKSUM MD5 : " + checksum);
+			
+			HashMap<String, String> result =  new HashMap(localServerStub.get(filename, checksum));
 			for (Map.Entry<String, String> entry : result.entrySet())
 			{
 				String currenthash = entry.getKey();
@@ -145,11 +196,9 @@ public class Client {
 	{
 		try
 		{
-			boolean result = localServerStub.create(filename);
-			if (result)
-				System.out.println("Fichier est ajoute");
-			else
-				System.out.println("Operation a echoue");
+			String result = localServerStub.create(filename);
+
+				System.out.println(result);
 		}
 		catch (RemoteException e)
 		{

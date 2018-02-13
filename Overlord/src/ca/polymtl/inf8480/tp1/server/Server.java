@@ -6,6 +6,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import java.io.FileInputStream;
 import java.security.MessageDigest;
@@ -27,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 
 import java.util.Map;
 import java.util.HashMap;
+
 
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 
@@ -194,8 +198,9 @@ public class Server implements ServerInterface {
 						// Si le client doit le fichier a jour 
 						else 
 						{
-							String fileContent = readFile(filename+".txt", Charset.UTF_8);
-							checksumAndFileContent.put(currentElement.getAttribute(checksum, fileContent);
+						 	String fileContent = new String(Files.readAllBytes(Paths.get(filename+".txt")));
+							//String fileContent = readFile(filename+".txt", StandardCharsets.UTF_8);
+							checksumAndFileContent.put(currentElement.getAttribute("checksum"), fileContent);
 							
 							return checksumAndFileContent;
 						}
@@ -207,56 +212,91 @@ public class Server implements ServerInterface {
 		}
 		else
 		{
-			checksumAndFileContent.put(currentElement.getAttribute("NE", "");
+			checksumAndFileContent.put("NE", "");
 			return checksumAndFileContent;
 			//return ("Le fichier n'existe pas");
 		}
+		checksumAndFileContent.put("NE", "");
+		return checksumAndFileContent;
 		//return "L'operation a echoue";
 		
 	}
 	
-	public boolean create(String filename) throws RemoteException {
+	public String create(String filename) throws RemoteException {
 		
-		File newFile = new File(filename+".txt");
+		File newFileServer = new File(filename+".txt");
 
+		if(!newFileServer.isFile())
+ 		{
+ 			try
+ 			{
+ 			newFileServer.createNewFile();
+ 			} catch (Exception e) {e.getMessage();}
+ 		}
+ 		else
+ 		{
+ 			return (filename + " est deja existant");
+ 		}
+ 		
 
 		File serverStateFile = new File("serverState.xml");
+		
+		
+		
+		try
+		{
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
 		Document doc;
 		doc = db.parse(serverStateFile);
+			
+			
+		Element root = doc.getDocumentElement();
 		
-		Element root = document.getDocumentElement();
-		
-		Element newFile = document.createElement("file");
+		Element newFile = doc.createElement("file");
 		newFile.setAttribute("name", filename);
 		newFile.setAttribute("isLocked", "non verrouillé");
-		currentElement.setAttribute("lockerID", "");
+		newFile.setAttribute("lockerID", "");
 		
-		String md5 = null;
-        FileInputStream fileInputStream = null;
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        FileInputStream fis = new FileInputStream("c:\\loging.log");
+		
+		StringBuffer hexString = new StringBuffer();
+		try
+		{
+			String md5 = null;
+		    FileInputStream fileInputStream = null;
+		    MessageDigest md = MessageDigest.getInstance("MD5");
+		    FileInputStream fis = new FileInputStream(filename+".txt");
 
-        byte[] dataBytes = new byte[1024];
 
-        int nread = 0;
-        while ((nread = fis.read(dataBytes)) != -1) {
-          md.update(dataBytes, 0, nread);
-        };
-        byte[] mdbytes = md.digest();
+		
+		    byte[] dataBytes = new byte[1024];
 
-        StringBuffer hexString = new StringBuffer();
-    	for (int i=0;i<mdbytes.length;i++) {
-    		String hex=Integer.toHexString(0xff & mdbytes[i]);
-   	     	if(hex.length()==1) hexString.append('0');
-   	     	hexString.append(hex);
-    	}
+		    int nread = 0;
+		    while ((nread = fis.read(dataBytes)) != -1) {
+		      md.update(dataBytes, 0, nread);
+		    };
+		    byte[] mdbytes = md.digest();
+
+		    //hexString = new StringBuffer();
+			for (int i=0;i<mdbytes.length;i++) {
+				String hex=Integer.toHexString(0xff & mdbytes[i]);
+	   	     	if(hex.length()==1) hexString.append('0');
+	   	     	hexString.append(hex);
+			}
+			System.out.println("HASH MAKING!");
+			
+		}catch (Exception e) {e.getMessage();}
+		
+		
+		
+        System.out.println("CREATE SERVER MD5 : " + hexString.toString());
 		
 		newFile.setAttribute("checksum", hexString.toString());
 
 		root.appendChild(newFile);
 		
+		try
+		{
 		
 		TransformerFactory tf = TransformerFactory.newInstance();
 		Transformer t = tf.newTransformer();
@@ -264,14 +304,14 @@ public class Server implements ServerInterface {
 		StreamResult output = new StreamResult(new File("serverState.xml"));
 		t.transform(source, output);
 		
-		try
-		{			
-			newFile.createNewFile();
+					
+			
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
+		} catch (Exception e) {}
 
-		return (newFile.isFile());
+		return "Le fichier est cree";
 	}
 	
 	public String lock(String ID, String filename, String checksum) throws RemoteException {
