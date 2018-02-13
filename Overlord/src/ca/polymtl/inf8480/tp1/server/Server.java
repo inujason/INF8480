@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.UUID;
 
 
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
@@ -337,7 +338,6 @@ public class Server implements ServerInterface {
 	public String lock(String ID, String filename, String checksum) throws RemoteException {
 		
 		File targetFile = new File(filename+".txt");
-		System.out.println("111111111111111111111");
 		if (targetFile.isFile())
 		{
 			try 
@@ -347,30 +347,25 @@ public class Server implements ServerInterface {
 				DocumentBuilder db = dbf.newDocumentBuilder();
 				Document doc;
 				
-				System.out.println("222222222222222222");
 				
 				doc = db.parse(serverStateFile);			
 				NodeList nodeList = doc.getElementsByTagName("file");
 				
 				for (int i=0;i<nodeList.getLength();i++)
 				{
-					System.out.println("333333333333333333");
 					Element currentElement = (Element)nodeList.item(i);
-					
-					System.out.println(currentElement.getAttribute("name"));
-					System.out.println(filename);				
+									
 					if (currentElement.getAttribute("name").equals(filename))
 					{
-						System.out.println("getAtt============filename???");
 						if (currentElement.getAttribute("isLocked").equals("verrouillé"))
 						{						
-							System.out.println("4444444444444444444");
-							return "Le fichier est verrouille par le client au ID:" + currentElement.getAttribute("lockerID");
+							return "Le fichier " 
+							+ currentElement.getAttribute("name") 
+							+ "est verrouille par le client au ID:" 
+							+ currentElement.getAttribute("lockerID");
 						}
 						else if (currentElement.getAttribute("isLocked").equals("non verrouillé"))
 						{
-							System.out.println("555555555555555555");
-							// Et le checksum dans tout ca?
 							currentElement.setAttribute("isLocked", "verrouillé");
 							currentElement.setAttribute("lockerID", ID);
 							
@@ -415,7 +410,7 @@ public class Server implements ServerInterface {
     
                     if (currentElement.getAttribute("name").equals(filename))
                     {
-						System.out.println("le nom est bon");
+						//System.out.println("le nom est bon");
                         if (currentElement.getAttribute("isLocked").equals("verrouillé"))
                         {
                             if (currentElement.getAttribute("lockerID").equals(ID))
@@ -493,9 +488,11 @@ public class Server implements ServerInterface {
         return null;
 	}
 	
-	public int CreateClientID(int[] tab) throws RemoteException {
-		// est ce que on fait laddition?
-		return 0;
+	public String CreateClientID() throws RemoteException {
+
+		//UUID tmp = new UUID(1L, 1L);
+
+		return UUID.randomUUID().toString();
 	}
 	
 }

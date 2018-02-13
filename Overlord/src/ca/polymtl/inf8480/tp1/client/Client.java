@@ -12,6 +12,7 @@ import java.io.FileWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.BufferedWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,6 +21,8 @@ import java.nio.file.Paths;
 
 import java.io.FileInputStream;
 import java.security.MessageDigest;
+
+import java.util.UUID;
 
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 
@@ -72,11 +75,14 @@ public class Client {
 
 	private void run() {
 		
+		CreateClientID();
+		
 		
 		if (/*distantServerStub != null && */command != null)
 		{
 			switch(command)
 			{
+			
 				case "list":
 					list();
 					break;
@@ -142,8 +148,6 @@ public class Client {
 					FileInputStream fileInputStream = null;
 					MessageDigest md = MessageDigest.getInstance("MD5");
 					FileInputStream fis = new FileInputStream(filename+".txt");
-
-System.out.println("HASh MAKKING");
 			
 				
 					byte[] dataBytes = new byte[1024];
@@ -160,13 +164,11 @@ System.out.println("HASh MAKKING");
 			   	     	if(hex.length()==1) hexString.append('0');
 			   	     	hexString.append(hex);
 					}
-					checksum = hexString.toString();	
-					System.out.println("HASh MADE:" + hexString.toString());				
+					checksum = hexString.toString();					
 				} catch (Exception e) {}
 				
 			}
 			
-			System.out.println("GET AVEC CHECKSUM MD5 : " + checksum);
 			
 			HashMap<String, String> result =  new HashMap(localServerStub.get(filename, checksum));
 			for (Map.Entry<String, String> entry : result.entrySet())
@@ -174,7 +176,11 @@ System.out.println("HASh MAKKING");
 				String currenthash = entry.getKey();
 				String fileContent = entry.getValue();
 				
-				System.out.println(currenthash+" "+fileContent);
+				//System.out.println(currenthash+" "+fileContent);
+				if (currenthash == "0")
+					System.out.println("Le fichier est deja a jour");
+				else
+					System.out.println("Le fichier est synchronise avec celui du server");
 			}
 		}
 		catch (RemoteException e)
@@ -220,10 +226,15 @@ System.out.println("HASh MAKKING");
 	{
 		try
 		{
-			String result = localServerStub.lock("H1a2r3d4y"/*ID*/, filename, "checksumLOL"/*checksum*/);
+			String ID = new String(Files.readAllBytes(Paths.get("ClientID.txt")));
+			
+			// Pour synchroniser(MAJ) le fichier avec le server avant de lock
+			get();
+		
+			String result = localServerStub.lock(ID, filename, "null");
 			System.out.println(result);
 		}
-		catch (RemoteException e)
+		catch (Exception e)
 		{
 			System.out.println("Erreur" + e.getMessage());
 		}
@@ -232,18 +243,7 @@ System.out.println("HASh MAKKING");
 	{
 		try
 		{
-			////////////////////////////////////////
-			////////////////////////////////////////
-			////////////////////////////////////////
-			////////////////////////////////////////
-			////////////////////////////////////////
-			////////////////////////////////////////
-			//TODO change le id 
-			////////////////////////////////////////
-			////////////////////////////////////////
-			////////////////////////////////////////
-			////////////////////////////////////////
-			////////////////////////////////////////
+			String ID = new String(Files.readAllBytes(Paths.get("ClientID.txt")));
 			
 			File file = new File(filename + ".txt");
 			FileInputStream fis = new FileInputStream(file);
@@ -251,7 +251,7 @@ System.out.println("HASh MAKKING");
 			fis.read(data);
 			fis.close();
 			String content = new String(data, "UTF-8");
-			String result = localServerStub.push("H1a2r3d4y" /*ID*/, filename, content);
+			String result = localServerStub.push(ID, filename, content);
 			System.out.println(result);
 		}
 		catch (Exception e)
@@ -293,6 +293,23 @@ System.out.println("HASh MAKKING");
 	
 	private void CreateClientID()
 	{
+		File clientIDFile = new File("ClientID.txt");
+		if (!clientIDFile.isFile())
+		{
+		try
+			{
+			clientIDFile.createNewFile();
+			
+			String result =  localServerStub.CreateClientID();
+			
+				BufferedWriter writer = null;
+				writer = new BufferedWriter(new FileWriter(clientIDFile));
+		        writer.write(result);
+		        writer.close();
+		    }
+		    catch (Exception e) {e.getMessage();}
+		}
+		
 		
 	}
 

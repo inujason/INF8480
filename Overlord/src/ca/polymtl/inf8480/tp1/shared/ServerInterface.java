@@ -11,6 +11,6 @@ public interface ServerInterface extends Remote {
 	String create(String filename) throws RemoteException;
 	String lock(String ID, String filename, String checksum) throws RemoteException;
 	String push(String ID, String filename, String contenu) throws RemoteException;
-	int CreateClientID(int[] tab) throws RemoteException;
+	String CreateClientID() throws RemoteException;
 	HashMap<String, String> syncLocalDirectory() throws RemoteException;
 }
