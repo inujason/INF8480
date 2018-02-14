@@ -56,9 +56,11 @@ public class Server implements ServerInterface {
 
 		try
 		{
+			//Lors de l'execution du serveur, on charge un fichier représentant l'etat du serveur
 			File serverStateFile = new File("serverState.xml");
 			
-
+			//Dans le cas ou c'est un nouveau serveur on cree un nouveau xml
+			//Sinon on charge le xml dans une liste! Les "file" dans le xml represente les fichiers presents sur le serveur
 			if (!serverStateFile.isFile())
 			{
 			
@@ -133,8 +135,7 @@ public class Server implements ServerInterface {
 	}
 
 	/*
-	 * Méthode accessible par RMI. Additionne les deux nombres passés en
-	 * paramètre.
+	 * Méthode accessible par RMI. Retourne la liste des fichiers present sur le serveur
 	 */
 	@Override
 	public HashMap<String, String> list() throws RemoteException {
@@ -151,13 +152,14 @@ public class Server implements ServerInterface {
 			NodeList nodeList = doc.getElementsByTagName("file");
 			
 			
-			
+			//On parcours les files du xml et on ajoute les attributs "name" et "isLocked" dans la hashMap
+			//Si le xml est vide on ajoute "0" "fichiers" dans la hashMap
 			
 			int nbFichier = nodeList.getLength();
 			
 			if (nbFichier == 0)
 			{
-				list.put("0", "fichiers");
+				list.put("0", "fichier");
 			}
 			else
 			{		
@@ -173,6 +175,9 @@ public class Server implements ServerInterface {
 		return list;
 	}
 	
+	/*
+	 * Méthode accessible par RMI. Retourne le contenu d'un fichier si celui ci est present sur le serveur
+	 */
 	public HashMap<String, String> get(String filename, String checksum) throws RemoteException {
 		
 		
@@ -180,6 +185,7 @@ public class Server implements ServerInterface {
 		
 		File targetFile = new File(filename+".txt");
 		
+		//On verifie si le fichier exist dans le serveur
 		if (targetFile.isFile())
 		{
 			try 
@@ -189,7 +195,7 @@ public class Server implements ServerInterface {
 				DocumentBuilder db = dbf.newDocumentBuilder();
 				Document doc;
 				
-				
+				//on parcours la liste de fichier dans le serveur
 				doc = db.parse(serverStateFile);			
 				NodeList nodeList = doc.getElementsByTagName("file");
 				
@@ -201,33 +207,22 @@ public class Server implements ServerInterface {
 					
 					if (currentElement.getAttribute("name").equals(filename))
 					{
-						/*
-						// Si client na pas le fichier
-						if (checksum.equals("0")
-						{
-							String fileContent = readFile(filename+".txt", Charset.UTF_8);
-							checksumAndFileContent.put(currentElement.getAttribute(checksum, fileContent);
-							
-							return checksumAndFileContent;
-						}
-						// si le client a le fichier deja a jour
-						else*/ if (currentElement.getAttribute("checksum").equals(checksum))
+						//si les checksum sont identiques, on ne fait rien
+						if (currentElement.getAttribute("checksum").equals(checksum))
 						{			
 							checksumAndFileContent.put("0", "");
 							return checksumAndFileContent;
 						}
-						// Si le client doit le fichier a jour 
+						// Sinon le fichier du client doit être mis à fichier a jour 
 						else 
 						{
 						 	String fileContent = new String(Files.readAllBytes(Paths.get(filename+".txt")));
-							//String fileContent = readFile(filename+".txt", StandardCharsets.UTF_8);
 							checksumAndFileContent.put(currentElement.getAttribute("checksum"), fileContent);
 							
 							return checksumAndFileContent;
 						}
 					}
 				}
-				//return "Le fichier n'est pas dans serverState";
 			}
 			catch (Exception e){}
 		}
@@ -235,19 +230,20 @@ public class Server implements ServerInterface {
 		{
 			checksumAndFileContent.put("NE", "");
 			return checksumAndFileContent;
-			//return ("Le fichier n'existe pas");
 		}
 		checksumAndFileContent.put("ECHEC", "");
 		return checksumAndFileContent;
-		//return "L'operation a echoue";
 		
 	}
 	
+	/*
+	 * Méthode accessible par RMI. Crée un fichier sur le serveur
+	 */
 	public String create(String filename) throws RemoteException {
 		
 		File newFileServer = new File(filename+".txt");
 
-
+		//Si un fichier du meme nom existe on ne fait rien sinon on le cree
 		if(!newFileServer.isFile())
  		{
  			try
@@ -267,74 +263,78 @@ public class Server implements ServerInterface {
 		
 		try
 		{
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document doc;
-		doc = db.parse(serverStateFile);
-			
-			
-		Element root = doc.getDocumentElement();
-		
-		Element newFile = doc.createElement("file");
-		newFile.setAttribute("name", filename);
-		newFile.setAttribute("isLocked", "non verrouillé");
-		newFile.setAttribute("lockerID", "");
-		
-		
-		StringBuffer hexString = new StringBuffer();
-		try
-		{
-			String md5 = null;
-		    FileInputStream fileInputStream = null;
-		    MessageDigest md = MessageDigest.getInstance("MD5");
-		    FileInputStream fis = new FileInputStream(filename+".txt");
+			// on ajoute dans le xml le fichier a ajouter 
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document doc;
+			doc = db.parse(serverStateFile);
+
+			//on cree un nouvel element
+			Element root = doc.getDocumentElement();
+
+			Element newFile = doc.createElement("file");
+			newFile.setAttribute("name", filename);
+			newFile.setAttribute("isLocked", "non verrouillé");
+			newFile.setAttribute("lockerID", "");
+
+			//on generer son checksum
+			StringBuffer hexString = new StringBuffer();
+			try
+			{
+				String md5 = null;
+			    FileInputStream fileInputStream = null;
+			    MessageDigest md = MessageDigest.getInstance("MD5");
+			    FileInputStream fis = new FileInputStream(filename+".txt");
 
 
-		
-		    byte[] dataBytes = new byte[1024];
 
-		    int nread = 0;
-		    while ((nread = fis.read(dataBytes)) != -1) {
-		      md.update(dataBytes, 0, nread);
-		    };
-		    byte[] mdbytes = md.digest();
+			    byte[] dataBytes = new byte[1024];
 
-		    //hexString = new StringBuffer();
-			for (int i=0;i<mdbytes.length;i++) {
-				String hex=Integer.toHexString(0xff & mdbytes[i]);
-	   	     	if(hex.length()==1) hexString.append('0');
-	   	     	hexString.append(hex);
+			    int nread = 0;
+			    while ((nread = fis.read(dataBytes)) != -1) {
+			      md.update(dataBytes, 0, nread);
+			    };
+			    byte[] mdbytes = md.digest();
+
+			    //hexString = new StringBuffer();
+				for (int i=0;i<mdbytes.length;i++) {
+					String hex=Integer.toHexString(0xff & mdbytes[i]);
+				if(hex.length()==1) hexString.append('0');
+				hexString.append(hex);
+				}
+				System.out.println("HASH MAKING!");
+
+			}catch (Exception e) {e.getMessage();}
+
+
+
+			System.out.println("CREATE SERVER MD5 : " + hexString.toString());
+
+			newFile.setAttribute("checksum", hexString.toString());
+			// on ajoute au root du xml
+			root.appendChild(newFile);
+
+			try
+			{
+				//on ecrit dans le xml
+				TransformerFactory tf = TransformerFactory.newInstance();
+				Transformer t = tf.newTransformer();
+				DOMSource source = new DOMSource(doc);
+				StreamResult output = new StreamResult(new File("serverState.xml"));
+				t.transform(source, output);
+
+
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
 			}
-			System.out.println("HASH MAKING!");
-			
-		}catch (Exception e) {e.getMessage();}
-		
-		
-		
-        System.out.println("CREATE SERVER MD5 : " + hexString.toString());
-		
-		newFile.setAttribute("checksum", hexString.toString());
-
-		root.appendChild(newFile);
-		
-		try
-		{
-		
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer t = tf.newTransformer();
-		DOMSource source = new DOMSource(doc);
-		StreamResult output = new StreamResult(new File("serverState.xml"));
-		t.transform(source, output);
-			
-			
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-		}
 		} catch (Exception e) {}
 
 		return "Le fichier est cree";
 	}
 	
+	/*
+	 * Méthode accessible par RMI. verouille un fichier sur le serveur
+	 */
 	public String lock(String ID, String filename, String checksum) throws RemoteException {
 		
 		File targetFile = new File(filename+".txt");
@@ -342,6 +342,7 @@ public class Server implements ServerInterface {
 		{
 			try 
 			{
+				//Si le fichier existe, on le verifie s'il n'est pas verrouillé
 				File serverStateFile = new File("serverState.xml");
 				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 				DocumentBuilder db = dbf.newDocumentBuilder();
@@ -358,7 +359,8 @@ public class Server implements ServerInterface {
 					if (currentElement.getAttribute("name").equals(filename))
 					{
 						if (currentElement.getAttribute("isLocked").equals("verrouillé"))
-						{						
+						{		
+							//Si le fichier est verouillé on affiche le ID
 							return "Le fichier " 
 							+ currentElement.getAttribute("name") 
 							+ " est verrouille par le client au ID:" 
@@ -366,6 +368,7 @@ public class Server implements ServerInterface {
 						}
 						else if (currentElement.getAttribute("isLocked").equals("non verrouillé"))
 						{
+							//on verrouille le fichier  et on modifie le xml
 							currentElement.setAttribute("isLocked", "verrouillé");
 							currentElement.setAttribute("lockerID", ID);
 							
@@ -389,6 +392,9 @@ public class Server implements ServerInterface {
 		return "L'operation a echoue";
 	}
 	
+	/*
+	 * Méthode accessible par RMI. Envoie les données d'un fichier sur le serveur
+	 */
 	public String push(String ID, String filename, String contenu) throws RemoteException {
 	
         File targetFile = new File(filename+".txt");
@@ -410,12 +416,13 @@ public class Server implements ServerInterface {
     
                     if (currentElement.getAttribute("name").equals(filename))
                     {
-						//System.out.println("le nom est bon");
+			
                         if (currentElement.getAttribute("isLocked").equals("verrouillé"))
                         {
+			//on verifie si le fichier a été verrouillé par le bon userID
                             if (currentElement.getAttribute("lockerID").equals(ID))
                             {
-                                //on fait les modifs
+                                //on delete le target du serveur, on le recree et on ecrit a l'interieur
                                 targetFile.delete();
                                 File target = new File(filename+".txt");
                                 FileWriter fw = new FileWriter(target, false);
@@ -424,11 +431,12 @@ public class Server implements ServerInterface {
                                 currentElement.setAttribute("isLocked", "non verrouillé");
                                 currentElement.setAttribute("lockerID", "");
                                 
+				// on ecrit dans le xml
                                 TransformerFactory tf = TransformerFactory.newInstance();
-								Transformer t = tf.newTransformer();
-								DOMSource source = new DOMSource(doc);
-								StreamResult output = new StreamResult(new File("serverState.xml"));
-								t.transform(source, output);
+				Transformer t = tf.newTransformer();
+				DOMSource source = new DOMSource(doc);
+				StreamResult output = new StreamResult(new File("serverState.xml"));
+				t.transform(source, output);
                                 return "Le push a bien ete effectue";
                             }
                             else
@@ -454,6 +462,9 @@ public class Server implements ServerInterface {
         return "L'operation a echoue";
 	}
 	
+	/*
+	 * Méthode accessible par RMI. Synchronise le repertoire local avec celui sur le serveur 
+	 */
 	public HashMap<String, String> syncLocalDirectory() throws RemoteException {
     
 		try
@@ -470,6 +481,7 @@ public class Server implements ServerInterface {
 			
 			for (int i=0;i<nodeList.getLength();i++)
 			{
+				//Pour chaque elemet du xml on ajoute dans la hashmap son nom et le string du contenu 
 				Element currentElement = (Element)nodeList.item(i);
 				String nomFile = currentElement.getAttribute("name");
 				
