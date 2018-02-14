@@ -431,12 +431,12 @@ public class Server implements ServerInterface {
                                 currentElement.setAttribute("isLocked", "non verrouillé");
                                 currentElement.setAttribute("lockerID", "");
                                 
-				// on ecrit dans le xml
+                                // on ecrit dans le xml
                                 TransformerFactory tf = TransformerFactory.newInstance();
-				Transformer t = tf.newTransformer();
-				DOMSource source = new DOMSource(doc);
-				StreamResult output = new StreamResult(new File("serverState.xml"));
-				t.transform(source, output);
+                                Transformer t = tf.newTransformer();
+                                DOMSource source = new DOMSource(doc);
+                                StreamResult output = new StreamResult(new File("serverState.xml"));
+                                t.transform(source, output);
                                 return "Le push a bien ete effectue";
                             }
                             else
