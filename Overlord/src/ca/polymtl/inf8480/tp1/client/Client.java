@@ -44,7 +44,6 @@ public class Client {
 		
 		
 		if (args.length > 0) {
-			
 			//Adresse du serveur
 			//distantHostname = args[0];
 			command = args[0];
@@ -52,11 +51,13 @@ public class Client {
 				filename = args[1];			
 		}
 		
-	
+		
 		Client client = new Client("132.207.12.104");
 		client.run();
 	}
 
+	
+	// On connecte le client au serveur distant avec adresse IP fixe.
 	public Client(String distantServerHostname) {
 		super();
 
@@ -73,17 +74,17 @@ public class Client {
 		}
 	}
 
+	
 	private void run() 
-	{
-		
+	{	
+		// On cree son ID si il nest pas present dans son fichier
 		CreateClientID();
-		
-		
+			
 		if (distantServerStub != null && command != null)
 		{
+			// Liste des comandes possibles par le client
 			switch(command)
 			{
-			
 				case "list":
 					list();
 					break;
@@ -109,6 +110,7 @@ public class Client {
 
 	}
 
+	// Tentative de creer le stub des objets du serveur a l'aide du registre
 	private ServerInterface loadServerStub(String hostname) {
 		ServerInterface stub = null;
 
@@ -128,14 +130,15 @@ public class Client {
 	}
 
 
-	private void get()
-	{
-
 	
+	// Fonction qui permet de mettre a jour ou de telecharger un fichier existant du serveur
+	private void get()
+	{	
 		String checksum = "";
 		try
 		{
 			File targetFile = new File(filename+".txt");
+			// Si le fichier n'existe pas, on force le checksum a rien pour recevoir une copie du serveur
 			if (!targetFile.isFile())
 			{
 				checksum = "";
@@ -143,6 +146,7 @@ public class Client {
 			else
 			{
 				StringBuffer hexString = new StringBuffer();
+				// On tente de creer un hash MD5 dont le checksum du fichier s'il existe
 				try
 				{
 					String md5 = null;
@@ -172,27 +176,31 @@ public class Client {
 			
 			
 			//HashMap<String, String> result =  new HashMap(localServerStub.get(filename, checksum));
+			// Appel de requete get au serveur distant
 			HashMap<String, String> result =  new HashMap(distantServerStub.get(filename, checksum));
 			
+			// Resultats de la requete
 			for (Map.Entry<String, String> entry : result.entrySet())
 			{
 				String currenthash = entry.getKey();
 				String fileContent = entry.getValue();
 				
-				//System.out.println(currenthash+" "+fileContent);
+				// Si on recoit 0 le fichier est deja a jour
 				if (currenthash.equals("0"))
 					System.out.println("Le fichier est deja a jour");
+				// le fichier n'existe pas au serveur
 				else if (currenthash.equals("NE"))
 				{
 					System.out.println("Le fichier n'existe pas");
 				}
+				// La requete a echoue au niveau du serveur
 				else if (currenthash.equals("ECHEC"))
 				{
 					System.out.println("L'operation a echouee");
 				}
+				// On met a jour le fichier local avec celui du serveur
 				else
 				{
-
 					try
 					{
 						if(targetFile.isFile())
@@ -224,13 +232,16 @@ public class Client {
 
 	}
 	
+	// Fonction qui permet d'affichier la liste des fichiers et leur etat de verrou provenant du serveur
 	private void list()
 	{
 		try
 		{
 			//HashMap<String, String> result =  new HashMap(localServerStub.list());
+			// Invocation de la methode au serveur
 			HashMap<String, String> result =  new HashMap(distantServerStub.list());
 			
+			// Affichage au console
 			for (Map.Entry<String, String> entry : result.entrySet())
 			{
 				String currentName = entry.getKey();
@@ -245,32 +256,40 @@ public class Client {
 		}
 	}
 	
+	// Fonction qui cree un fichier au serveur
 	private void create()
 	{
 		try
 		{
 			//String result = localServerStub.create(filename);
+			// Invocation de la methode a distance
 			String result = distantServerStub.create(filename);
 
-				System.out.println(result);
+			// Resultat de l'invocation valider par le serveur
+			System.out.println(result);
 		}
 		catch (RemoteException e)
 		{
 			System.out.println("Erreur" + e.getMessage());
 		}
 	}
+	
+	// Fonction lock qui permet de verrouiller un fichier afin de faire des modification locales de maniere synchrone
+	// Le client qui le lock pourra donc le modifier et les autres non.
 	private void lock()
 	{
 		try
 		{
+			// Le Id du client
 			String ID = new String(Files.readAllBytes(Paths.get("ClientID.txt")));
 			
-			// Pour synchroniser(MAJ) le fichier avec le server avant de lock
+			// Appel get our synchroniser(MAJ) le fichier avec le server avant de lock
 			get();
 		
 			//String result = localServerStub.lock(ID, filename, "null");
+			// Invocation de la methode lock au serveur
 			String result = distantServerStub.lock(ID, filename, "null");
-			
+			// Affichage du message de retour de l'invocation provenant du serveur.
 			System.out.println(result);
 		}
 		catch (Exception e)
@@ -279,10 +298,13 @@ public class Client {
 		}
 	}
 	
+	
+	// Methode push qui permet d'envoyer le fichier verrouille contenant les modifications apportes
 	private void push()
 	{
 		try
 		{
+			// Le client ID 
 			String ID = new String(Files.readAllBytes(Paths.get("ClientID.txt")));
 			
 			File file = new File(filename + ".txt");
@@ -291,8 +313,11 @@ public class Client {
 			fis.read(data);
 			fis.close();
 			String content = new String(data, "UTF-8");
+			
 			//String result = localServerStub.push(ID, filename, content);
+			// L'invocation de la methode push au niveau du serveur
 			String result = distantServerStub.push(ID, filename, content);
+			// Affichage du resultat de l'invocation
 			System.out.println(result);
 		}
 		catch (Exception e)
@@ -301,13 +326,18 @@ public class Client {
 		}
 	}
 	
+	
+	// Cette fonction permet de telecharger les fichiers dans le serveurs vers notre dossier local.
+	// Les fichiers existants sont mis a jour et ceux qui n'existent pas localement sont ajoutes.
 	private void syncLocalDirectory()
 	{
 		try
 		{
-			//TODO change le content et le id 
 			//HashMap<String, String> result =  new HashMap(localServerStub.syncLocalDirectory());
+			// Invocation de la methode au serveur
 			HashMap<String, String> result =  new HashMap(distantServerStub.syncLocalDirectory());
+			
+			// On met a jour notre dossier avec une reponse venant du serveur contennat la liste des fichiers et leur contenu.
 			for (Map.Entry<String, String> entry : result.entrySet())
 			{
 				//Pour chaque fichier on supprime le fichier s'il existe et on le rempli avec le content recu
@@ -333,9 +363,12 @@ public class Client {
 		}
 	}
 	
+	// Generation du client ID, si non present, lorsque le client tente de se connecter
 	private void CreateClientID()
 	{
 		File clientIDFile = new File("ClientID.txt");
+		// On verifie si le client possede deja un ID
+		// Sinon le cree son ID dans un fichier nomme ClientID.txt
 		if (!clientIDFile.isFile())
 		{
 		try

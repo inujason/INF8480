@@ -5,6 +5,7 @@ import java.rmi.RemoteException;
 import java.util.Map;
 import java.util.HashMap;
 
+// Interface des methodes qui sont invoque au serveur par le client.
 public interface ServerInterface extends Remote {
 	HashMap<String, String> list() throws RemoteException;
 	HashMap<String, String> get(String filename, String checksum) throws RemoteException;
