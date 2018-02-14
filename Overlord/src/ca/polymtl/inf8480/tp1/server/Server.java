@@ -237,7 +237,7 @@ public class Server implements ServerInterface {
 			return checksumAndFileContent;
 			//return ("Le fichier n'existe pas");
 		}
-		checksumAndFileContent.put("NE", "");
+		checksumAndFileContent.put("ECHEC", "");
 		return checksumAndFileContent;
 		//return "L'operation a echoue";
 		
@@ -361,7 +361,7 @@ public class Server implements ServerInterface {
 						{						
 							return "Le fichier " 
 							+ currentElement.getAttribute("name") 
-							+ "est verrouille par le client au ID:" 
+							+ " est verrouille par le client au ID:" 
 							+ currentElement.getAttribute("lockerID");
 						}
 						else if (currentElement.getAttribute("isLocked").equals("non verrouillé"))

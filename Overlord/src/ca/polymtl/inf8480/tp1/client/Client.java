@@ -66,19 +66,20 @@ public class Client {
 
 		//localServer = new FakeServer();
 		
-		localServerStub = loadServerStub("127.0.0.1");
+		//localServerStub = loadServerStub("127.0.0.1");
 
-		//if (distantServerHostname != null) {
-			//distantServerStub = loadServerStub(distantServerHostname);
-		//}
+		if (distantServerHostname != null) {
+			distantServerStub = loadServerStub(distantServerHostname);
+		}
 	}
 
-	private void run() {
+	private void run() 
+	{
 		
 		CreateClientID();
 		
 		
-		if (/*distantServerStub != null && */command != null)
+		if (distantServerStub != null && command != null)
 		{
 			switch(command)
 			{
@@ -170,17 +171,49 @@ public class Client {
 			}
 			
 			
-			HashMap<String, String> result =  new HashMap(localServerStub.get(filename, checksum));
+			//HashMap<String, String> result =  new HashMap(localServerStub.get(filename, checksum));
+			HashMap<String, String> result =  new HashMap(distantServerStub.get(filename, checksum));
+			
 			for (Map.Entry<String, String> entry : result.entrySet())
 			{
 				String currenthash = entry.getKey();
 				String fileContent = entry.getValue();
 				
 				//System.out.println(currenthash+" "+fileContent);
-				if (currenthash == "0")
+				if (currenthash.equals("0"))
 					System.out.println("Le fichier est deja a jour");
+				else if (currenthash.equals("NE"))
+				{
+					System.out.println("Le fichier n'existe pas");
+				}
+				else if (currenthash.equals("ECHEC"))
+				{
+					System.out.println("L'operation a echouee");
+				}
 				else
-					System.out.println("Le fichier est synchronise avec celui du server");
+				{
+
+					try
+					{
+						if(targetFile.isFile())
+						{
+							targetFile.delete();
+							targetFile = new File(filename+".txt");
+						}
+						else
+						{
+							targetFile.createNewFile();
+						}	
+							FileWriter fw = new FileWriter(targetFile, false);
+							fw.write(fileContent);
+							fw.close();
+							
+							System.out.println("Le fichier est synchronise avec celui du server");
+							System.out.println("hash:" + currenthash);
+							System.out.println("filecontent: " + fileContent);
+							
+					} catch (Exception e) {}
+				}
 			}
 		}
 		catch (RemoteException e)
@@ -190,11 +223,14 @@ public class Client {
 
 
 	}
+	
 	private void list()
 	{
 		try
 		{
-			HashMap<String, String> result =  new HashMap(localServerStub.list());
+			//HashMap<String, String> result =  new HashMap(localServerStub.list());
+			HashMap<String, String> result =  new HashMap(distantServerStub.list());
+			
 			for (Map.Entry<String, String> entry : result.entrySet())
 			{
 				String currentName = entry.getKey();
@@ -213,7 +249,8 @@ public class Client {
 	{
 		try
 		{
-			String result = localServerStub.create(filename);
+			//String result = localServerStub.create(filename);
+			String result = distantServerStub.create(filename);
 
 				System.out.println(result);
 		}
@@ -231,7 +268,9 @@ public class Client {
 			// Pour synchroniser(MAJ) le fichier avec le server avant de lock
 			get();
 		
-			String result = localServerStub.lock(ID, filename, "null");
+			//String result = localServerStub.lock(ID, filename, "null");
+			String result = distantServerStub.lock(ID, filename, "null");
+			
 			System.out.println(result);
 		}
 		catch (Exception e)
@@ -239,6 +278,7 @@ public class Client {
 			System.out.println("Erreur" + e.getMessage());
 		}
 	}
+	
 	private void push()
 	{
 		try
@@ -251,7 +291,8 @@ public class Client {
 			fis.read(data);
 			fis.close();
 			String content = new String(data, "UTF-8");
-			String result = localServerStub.push(ID, filename, content);
+			//String result = localServerStub.push(ID, filename, content);
+			String result = distantServerStub.push(ID, filename, content);
 			System.out.println(result);
 		}
 		catch (Exception e)
@@ -265,7 +306,8 @@ public class Client {
 		try
 		{
 			//TODO change le content et le id 
-			HashMap<String, String> result =  new HashMap(localServerStub.syncLocalDirectory());
+			//HashMap<String, String> result =  new HashMap(localServerStub.syncLocalDirectory());
+			HashMap<String, String> result =  new HashMap(distantServerStub.syncLocalDirectory());
 			for (Map.Entry<String, String> entry : result.entrySet())
 			{
 				//Pour chaque fichier on supprime le fichier s'il existe et on le rempli avec le content recu
@@ -300,7 +342,8 @@ public class Client {
 			{
 			clientIDFile.createNewFile();
 			
-			String result =  localServerStub.CreateClientID();
+			//String result =  localServerStub.CreateClientID();
+			String result =  distantServerStub.CreateClientID();
 			
 				BufferedWriter writer = null;
 				writer = new BufferedWriter(new FileWriter(clientIDFile));
