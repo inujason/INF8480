@@ -11,6 +11,8 @@ package ca.polymtl.inf8480.tp1.ops;
  
 public class Operations {
 
+	public Operations() {}
+
 	public static int pell(int x) {
 		if (x == 0)
 			return 0;

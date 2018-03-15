@@ -21,6 +21,7 @@
 		<delete file="server.jar" />
 		<delete file="repartiteur.jar" />
 		<delete file="shared.jar" />
+		<delete file="Operations.jar" />
 	</target>
 	
 	
@@ -36,5 +37,6 @@
 		<jar destfile="shared.jar" basedir="bin" includes="ca/polymtl/inf8480/tp1/shared/**" update="false" />
 		<jar destfile="server.jar" basedir="bin" includes="ca/polymtl/inf8480/tp1/server/**" update="false" />
 		<jar destfile="repartiteur.jar" basedir="bin" includes="ca/polymtl/inf8480/tp1/repartiteur/**" update="false" />
+		<jar destfile="Operations.jar" basedir="bin" includes="ca/polymtl/inf8480/tp1/ops/**" update="false" />
 	</target>
 </project>

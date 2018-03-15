@@ -51,6 +51,8 @@ public class Server implements ServerInterface {
 
 	public static Random random;
 	static int qMaxCapacity;
+	
+	static boolean isSecured = true;
 
 	public static void main(String[] args) 
 	{
@@ -59,7 +61,7 @@ public class Server implements ServerInterface {
 		
 		random = new Random();
 		
-		qMaxCapacity = 3 + random.nextInt()%3;
+		qMaxCapacity = 3 + Math.abs(random.nextInt()%3);
 		server.run();
 	}
 
@@ -78,7 +80,7 @@ public class Server implements ServerInterface {
 
 			Registry registry = LocateRegistry.getRegistry();
 			registry.rebind("server", stub);
-			System.out.println("Server ready.");
+			System.out.println("Server ready. QMax= " + qMaxCapacity);
 		} catch (ConnectException e) {
 			System.err
 					.println("Impossible de se connecter au registre RMI. Est-ce que rmiregistry est lancé ?");
@@ -99,6 +101,8 @@ public class Server implements ServerInterface {
 	 @Override
 	public boolean isTasksAccepted(int numberofTasks) throws RemoteException
 	{
+		if (numberofTasks <= qMaxCapacity)
+			return true;
 		int tauxRefus = ((numberofTasks - qMaxCapacity)/(5*qMaxCapacity))*100;
 		int r = random.nextInt()%100;
 		if (r < tauxRefus)
@@ -116,28 +120,72 @@ public class Server implements ServerInterface {
 	public int sendTasks(List<String> listOps) throws RemoteException
 	{
 		int sum = 0;
+		//Operations operationDOER = new Operations();
+		
 		for (String task :
 				listOps)
 		{
+			
+			
 			String[] splits = task.split(" ");
-			String operation = splits[0];
-			Integer operand = Integer.parseInt(splits[0]);
+			String op = splits[0];
+			int operand = Integer.parseInt(splits[1]);
 			int value = 0;
 			
-			if (operation.equals("pell"))
-				value = Operations.pell(operand);
-			else if (operation.equals("prime"))
-				value = Operations.prime(operand);
+			
+			if (op.equals("pell"))
+			{
+				value = pell(operand);
+				System.out.println("VALUE " + value);
+			}
+			if (op.equals("prime"))
+			{
+				value = prime(operand);
+				System.out.println("VALUE " + value);
+			}
 			
 			
-			sum += value%4000;
-			
-			
+			sum += value %4000;
+			System.out.println(value);
+			System.out.println("sum " + sum);
 		}
 		
-		System.out.println(sum);
+		System.out.println("Final " + sum);
 					
 		return sum;
+	}
+	
+	public static int pell(int x) {
+		if (x == 0)
+			return 0;
+		if (x == 1)
+			return 1;
+		return 2 * pell(x - 1) + pell(x - 2);
+	}
+	
+	public static int prime(int x) {
+		int highestPrime = 0;
+		
+		for (int i = 1; i <= x; ++i)
+		{
+			if (isPrime(i) && x % i == 0 && i > highestPrime)
+				highestPrime = i;
+		}
+		
+		return highestPrime;
+	}
+	
+	private static boolean isPrime(int x) {
+		if (x <= 1)
+			return false;
+
+		for (int i = 2; i < x; ++i)
+		{
+			if (x % i == 0)
+				return false;
+		}
+		
+		return true;		
 	}
 	
 }

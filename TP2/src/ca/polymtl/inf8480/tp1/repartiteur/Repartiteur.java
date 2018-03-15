@@ -66,37 +66,57 @@ public class Repartiteur {
 	
 	private void run() 
 	{	
+		//if (distantServerStub != null && command != null)
+		
+		int indexCurrentTask = 0;
+		int sum = 0;
+		boolean isFinished = false;
+		
 		readFileTask();
 		
-		//if (distantServerStub != null && command != null)
+		// Prendre les prochains tasks
+		int nbOpsForServer = 10;
+		
+		
+		// TODO : Changement de bool de mode de securite pour les serveurs selon la commande du user!
+		
+		
+		while (!isFinished)
 		{
-			// Liste des comandes possibles par le client
-			/*
-			switch(command)
+			
+			// TODO : THREADS(Donc avec var globales)
+			int nbTasksLeft = (listTasks.size()) - indexCurrentTask;
+			if (nbTasksLeft < 10)
+				nbOpsForServer = nbTasksLeft;
+			else
+				nbOpsForServer = 10;
+			
+			
+			while (!isTasksAccepted(localServerStub, nbOpsForServer))
 			{
-				case "list":
-					list();
-					break;
-				case "get":
-					get();
-					break;
-				case "create":
-					create();
-					break;
-				case "lock":
-					lock();
-					break;
-				case "push":
-					push();
-					break;
-				case "syncLocalDirectory":
-					syncLocalDirectory();
-					break;
-				default:
-					System.out.println("Commande non reconnue");
+				nbOpsForServer--;
 			}
-			*/
+			
+			List<String> currentTasks = new ArrayList<String>();
+			for ( int i = 0; i < nbOpsForServer; i++)
+			{
+				currentTasks.add(listTasks.get(indexCurrentTask + i));
+				
+			}
+			indexCurrentTask += nbOpsForServer;
+			sum += sendTasks(localServerStub, currentTasks);
+			
+			System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
+			
+			if (indexCurrentTask == listTasks.size())
+			{
+				isFinished = true;
+			}
 		}
+		
+		
+		
+		
 
 	}
 
@@ -136,17 +156,33 @@ public class Repartiteur {
 		//System.out.println(listTasks);
 	}
 	
-	private boolean isTasksAcceptedvoid()
+	private boolean isTasksAccepted(ServerInterface server, int nbOfTasks)
 	{
-		/*
+		
+		boolean result = false;
 		try
 		{					
-			int result =  localServerStub.isTasksAcceptedvoid();
+			result =  server.isTasksAccepted(nbOfTasks);
+			//int result =  distantServerStub.isTasksAcceptedvoid();
+			
+		}
+		catch (Exception e) {e.getMessage();}		
+		return result;
+	}
+	
+	private int sendTasks(ServerInterface server, List<String> listOps)
+	{
+		
+		int result = 0;
+		try
+		{					
+			// TODO: PANNE A GERER
+			result =  server.sendTasks(listOps);
 			//int result =  distantServerStub.isTasksAcceptedvoid();
 		}
-		    catch (Exception e) {e.getMessage();}		
-		*/
-		return false;	
+		catch (Exception e) {e.getMessage();}		
+		
+		return result;
 	}
 
 	
