@@ -5,7 +5,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-
+import java.rmi.Remote;
 
 import java.io.File;
 import java.io.FileReader;
@@ -13,8 +13,11 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.*;
 
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
+import ca.polymtl.inf8480.tp1.shared.ServerServiceInterface;
 
 public class Repartiteur {
 	
@@ -24,9 +27,21 @@ public class Repartiteur {
 	private ServerInterface localServerStub = null;
 	private ServerInterface distantServerStub = null;
 	
+	private ServerServiceInterface serverServiceRepertoireStub = null;
+	
 	public static String filename = "";
 	
+	public static HashMap<String, ServerInterface> listServerStubs = new HashMap<String,ServerInterface>();
+	
 	public static List<String> listTasks = new ArrayList<String>();
+	
+	
+	public static Integer indexCurrentTask = 0;
+	public static Integer sum = 0;
+	public static Boolean isFinished = false;
+	
+	public static List<Integer> sums = new ArrayList<Integer>();
+	
 	
 	public static void main(String[] args) {
 		
@@ -39,94 +54,77 @@ public class Repartiteur {
 			filename = args[0];		
 		}
 		
-		Repartiteur repartiteur = new Repartiteur("132.207.12.104");
+		Repartiteur repartiteur = new Repartiteur();
+		
+		//repartiteur.connectToNameService("132.207.12.104");
+		repartiteur.connectToNameService("127.0.0.1");
 		repartiteur.run();
+		
+		
+		
 	}
-
 	
-	// On connecte le Repartiteur au serveur distant avec adresse IP fixe.
-	public Repartiteur(String distantServerHostname) {
+	public Repartiteur()
+	{
 		super();
+	}
+	
+	// On connecte le Repartiteur au serveur de service de noms distant avec adresse IP fixe.
+	public void connectToNameService(String distantServerServiceHostname) {
+		
 
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new SecurityManager());
 		}
 
-		//localServer = new FakeServer();
-		
-		
-		// CHANGER POUR SOIT LOCAL OU DISTANT EN COMMENTANT 
-		localServerStub = loadServerStub("127.0.0.1");
-
-		if (distantServerHostname != null) {
-			//distantServerStub = loadServerStub(distantServerHostname);
+		if (distantServerServiceHostname != null) {
+			serverServiceRepertoireStub = loadServerServiceStub(distantServerServiceHostname);
 		}
 	}
 
-	
 	private void run() 
 	{	
-		//if (distantServerStub != null && command != null)
-		
-		int indexCurrentTask = 0;
-		int sum = 0;
-		boolean isFinished = false;
-		
-		readFileTask();
-		
-		// Prendre les prochains tasks
-		int nbOpsForServer = 10;
+		System.out.println("RUNNING");
 		
 		
-		// TODO : Changement de bool de mode de securite pour les serveurs selon la commande du user!
+		connectToServers();
 		
 		
-		while (!isFinished)
-		{
-			
-			// TODO : THREADS(Donc avec var globales)
-			int nbTasksLeft = (listTasks.size()) - indexCurrentTask;
-			if (nbTasksLeft < 10)
-				nbOpsForServer = nbTasksLeft;
-			else
-				nbOpsForServer = 10;
-			
-			
-			while (!isTasksAccepted(localServerStub, nbOpsForServer))
-			{
-				nbOpsForServer--;
-			}
-			
-			List<String> currentTasks = new ArrayList<String>();
-			for ( int i = 0; i < nbOpsForServer; i++)
-			{
-				currentTasks.add(listTasks.get(indexCurrentTask + i));
-				
-			}
-			indexCurrentTask += nbOpsForServer;
-			sum += sendTasks(localServerStub, currentTasks);
-			
-			System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
-			
-			if (indexCurrentTask == listTasks.size())
-			{
-				isFinished = true;
-			}
-		}
-		
-		
+		sendTasks();
 		
 		
 
 	}
 
 	// Tentative de creer le stub des objets du serveur a l'aide du registre
-	private ServerInterface loadServerStub(String hostname) {
-		ServerInterface stub = null;
+	private ServerServiceInterface loadServerServiceStub(String hostname) {
+		
+		ServerServiceInterface stub = null;
+	
 
 		try {
 			Registry registry = LocateRegistry.getRegistry(hostname);
-			stub = (ServerInterface) registry.lookup("server");
+			stub = (ServerServiceInterface) registry.lookup("service");
+		} catch (NotBoundException e) {
+			System.out.println("Erreur: Le nom '" + e.getMessage()
+					+ "' n'est pas défini dans le registre.");
+		} catch (AccessException e) {
+			System.out.println("Erreur: " + e.getMessage());
+		} catch (RemoteException e) {
+			System.out.println("Erreur: " + e.getMessage());
+		}
+
+		return stub;
+	}
+	
+	// Tentative de creer le stub des objets du serveur a l'aide du registre
+	private ServerInterface loadServerStub(String id, String hostname) {
+		
+		ServerInterface stub = null;
+	
+		try {
+			Registry registry = LocateRegistry.getRegistry(hostname);
+			stub = (ServerInterface) registry.lookup(id);
 		} catch (NotBoundException e) {
 			System.out.println("Erreur: Le nom '" + e.getMessage()
 					+ "' n'est pas défini dans le registre.");
@@ -141,6 +139,40 @@ public class Repartiteur {
 
 
 
+	private void sendTasks()
+	{
+		
+		
+		
+		readFileTask();
+		
+		
+		
+		Iterator it = listServerStubs.entrySet().iterator();
+		while (it.hasNext())
+		{
+			ServerInterface server = (ServerInterface)((Map.Entry) it.next()).getValue();
+			ServerThread t = new ServerThread(server);
+			t.start();
+		}
+		// TODO : Changement de bool de mode de securite pour les serveurs selon la commande du user!
+		
+		
+		// TODO : THREADS(Donc avec var globales)
+		// creer un thread pour chaque serveur
+		// chaque thread permet de envoyer des tachers et de recevoir le resultat
+		// lors de reception de resultat, recommencer tant que la list des taches nest pas fini.
+		
+		
+		while (!isFinished)
+		{
+			System.out.println(isFinished);
+		}
+		System.out.println(isFinished);
+		System.out.println("FINAL SUMM : " + sum);
+		
+	}
+
 	private void readFileTask()
 	{
 		try 
@@ -153,7 +185,29 @@ public class Repartiteur {
 		}
 		catch (Exception e)
 		{ System.out.println(e.getMessage());}
-		//System.out.println(listTasks);
+	}
+	
+	private void connectToServers()
+	{
+		try
+		{					
+			HashMap<String, String> results = serverServiceRepertoireStub.getListServers();
+			System.out.println(results);
+			
+			Iterator it = results.entrySet().iterator();
+			while (it.hasNext())
+			{
+				Map.Entry server = (Map.Entry) it.next();
+				String id = (String) server.getKey();
+				String ip = (String) server.getValue();
+				ServerInterface stub = loadServerStub(id, ip);
+				listServerStubs.put(id, stub);
+			}
+		}
+		catch (Exception e) {e.getMessage();}
+		
+		System.out.println(listServerStubs.size());
+		
 	}
 	
 	private boolean isTasksAccepted(ServerInterface server, int nbOfTasks)
@@ -170,7 +224,7 @@ public class Repartiteur {
 		return result;
 	}
 	
-	private int sendTasks(ServerInterface server, List<String> listOps)
+	private int sendTasksToServer(ServerInterface server, List<String> listOps)
 	{
 		
 		int result = 0;
@@ -185,5 +239,66 @@ public class Repartiteur {
 		return result;
 	}
 
+	// TODO: Authentification du user pour le serveur a laide du service
+	
+	
+	// ORDRE DIMPORTAANCE DES TACHES
+	// THREADS, PANNES, MALICE(Secu ou non-secu),Authentification
+	
+	
+	public class ServerThread extends Thread {
+	
+	ServerInterface currentServerStub;
+	
+	public ServerThread(ServerInterface server)
+	{
+		currentServerStub = server;
+	}
+	public void run()
+	{
+		while (!isFinished)
+		{
+						
+			int nbOpsForServer = 10;
+			
+			int nbTasksLeft = 0;
+			//synchronized ((Object) indexCurrentTask) {
+			nbTasksLeft = (listTasks.size()) - indexCurrentTask;
+			//}
+			if (nbTasksLeft < 10)
+				nbOpsForServer = nbTasksLeft;			
+			
+			while (!isTasksAccepted(currentServerStub, nbOpsForServer))
+			{
+				nbOpsForServer--;
+			}
+			
+			List<String> currentTasks = new ArrayList<String>();
+			for ( int i = 0; i < nbOpsForServer; i++)
+			{
+				currentTasks.add(listTasks.get(indexCurrentTask + i));
+				
+			}
+			//synchronized (indexCurrentTask) {
+				indexCurrentTask += nbOpsForServer;
+			//}
+			//synchronized (sum) {
+				sum += sendTasksToServer(currentServerStub, currentTasks);
+			//}
+			
+			System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
+			
+			//synchronized (isFinished) {
+				if (indexCurrentTask == listTasks.size())
+				{
+					isFinished = true;
+				}
+			//}
+		}
+	}
+}
 	
 }
+
+
+

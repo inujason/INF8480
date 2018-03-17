@@ -1,6 +1,8 @@
 package ca.polymtl.inf8480.tp1.server;
 
 import java.rmi.ConnectException;
+import java.rmi.AccessException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -42,12 +44,38 @@ import java.util.UUID;
 * */
 import java.util.Random;
 import java.util.List;
+import java.util.UUID;
+import java.util.HashMap;
 
+import java.net.InetAddress;
 
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
+import ca.polymtl.inf8480.tp1.shared.ServerServiceInterface;
 import ca.polymtl.inf8480.tp1.ops.Operations;
 
 public class Server implements ServerInterface {
+
+	private static ServerServiceInterface serverServiceRepertoireStub = null;
+
+
+
+
+
+
+
+	private final static String id = UUID.randomUUID().toString();
+
+
+
+
+
+
+
+
+
+
+
+
 
 	public static Random random;
 	static int qMaxCapacity;
@@ -57,12 +85,12 @@ public class Server implements ServerInterface {
 	public static void main(String[] args) 
 	{
 		Server server = new Server();
-	
 		
 		random = new Random();
 		
 		qMaxCapacity = 3 + Math.abs(random.nextInt()%3);
 		server.run();
+		registerToServerService();
 	}
 
 	public Server() {
@@ -79,7 +107,7 @@ public class Server implements ServerInterface {
 					.exportObject(this, 0);
 
 			Registry registry = LocateRegistry.getRegistry();
-			registry.rebind("server", stub);
+			registry.rebind(id, stub);
 			System.out.println("Server ready. QMax= " + qMaxCapacity);
 		} catch (ConnectException e) {
 			System.err
@@ -91,6 +119,38 @@ public class Server implements ServerInterface {
 		}
 	}
  
+
+	private static void registerToServerService()
+	{
+		
+		serverServiceRepertoireStub = null;
+	
+
+		try {
+			//Registry registry = LocateRegistry.getRegistry("132.207.12.104");
+			Registry registry = LocateRegistry.getRegistry("127.0.0.1");
+			serverServiceRepertoireStub = (ServerServiceInterface) registry.lookup("service");
+		} catch (NotBoundException e) {
+			System.out.println("Erreur: Le nom '" + e.getMessage()
+					+ "' n'est pas défini dans le registre.");
+		} catch (AccessException e) {
+			System.out.println("Erreur: " + e.getMessage());
+		} catch (RemoteException e) {
+			System.out.println("Erreur: " + e.getMessage());
+		}
+		
+		System.out.println("Service is: " + serverServiceRepertoireStub);
+
+		try {
+		//System.out.println(InetAddress.getLocalHost().getHostAddress());
+		serverServiceRepertoireStub.registerServer(id, InetAddress.getLocalHost().getHostAddress());
+		} catch(Exception e ) 
+		{
+			System.out.println(e.getMessage());
+		}	
+		
+		
+	}
 
 
 	/*
@@ -125,13 +185,10 @@ public class Server implements ServerInterface {
 		for (String task :
 				listOps)
 		{
-			
-			
 			String[] splits = task.split(" ");
 			String op = splits[0];
 			int operand = Integer.parseInt(splits[1]);
 			int value = 0;
-			
 			
 			if (op.equals("pell"))
 			{

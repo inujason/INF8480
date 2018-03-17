@@ -38,5 +38,6 @@
 		<jar destfile="server.jar" basedir="bin" includes="ca/polymtl/inf8480/tp1/server/**" update="false" />
 		<jar destfile="repartiteur.jar" basedir="bin" includes="ca/polymtl/inf8480/tp1/repartiteur/**" update="false" />
 		<jar destfile="Operations.jar" basedir="bin" includes="ca/polymtl/inf8480/tp1/ops/**" update="false" />
+		
 	</target>
 </project>
