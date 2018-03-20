@@ -98,7 +98,11 @@ public class Server implements ServerInterface {
 		
 		random = new Random();
 		
+		
 		qMaxCapacity = 3 + Math.abs(random.nextInt()%3);
+		
+		// Pour le test de performance non securise
+		// qMaxCapacity = 5;
 		
 		System.out.println("Service avec taux de malice de: " + tauxMalice);
 		System.out.println("Capacite de taches du serveur: " + qMaxCapacity);
@@ -140,8 +144,8 @@ public class Server implements ServerInterface {
 	
 
 		try {
-			//Registry registry = LocateRegistry.getRegistry("132.207.12.104");
-			Registry registry = LocateRegistry.getRegistry("127.0.0.1");
+			Registry registry = LocateRegistry.getRegistry("132.207.12.104");
+			// Registry registry = LocateRegistry.getRegistry("127.0.0.1");
 			serverServiceRepertoireStub = (ServerServiceInterface) registry.lookup("service");
 		} catch (NotBoundException e) {
 			System.out.println("Erreur: Le nom '" + e.getMessage()

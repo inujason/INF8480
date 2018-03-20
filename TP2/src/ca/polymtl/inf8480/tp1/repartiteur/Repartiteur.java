@@ -71,14 +71,17 @@ public class Repartiteur {
 		
 		Repartiteur repartiteur = new Repartiteur();
 		
-		//repartiteur.connectToNameService("132.207.12.104");
-		repartiteur.connectToNameService("127.0.0.1");
+		repartiteur.connectToNameService("132.207.12.104");
+		// repartiteur.connectToNameService("127.0.0.1");
 	
-		
+		long startTime = System.currentTimeMillis();
 		repartiteur.run();
+		long estimatedTime = System.currentTimeMillis() - startTime;
 		
+		System.out.println("La somme est : " + sum);
 		
-		
+		System.out.println("Time elapsed in millisec : " + estimatedTime);
+
 	}
 	
 	public Repartiteur()
@@ -172,7 +175,7 @@ public class Repartiteur {
 			try
 			{	
 				// PANNE?
-				System.out.println("isSecure: " + isSecure);
+				//System.out.println("isSecure: " + isSecure);
 				currentServer.changeBehaviours(isSecure);
 			}
 			catch (Exception e) {e.getMessage();}	
@@ -207,7 +210,7 @@ public class Repartiteur {
 			
 			checkServerState();
 			
-			if(!it.hasNext())
+			if(!it.hasNext() && (indexCurrentTask == listTasks.size()))
 			{
 				break;
 			}
@@ -216,9 +219,9 @@ public class Repartiteur {
 			ServerInterface firstServer = (ServerInterface) map1.getValue();
 			String id1 = map1.getKey().toString();
 						
-			if(!it.hasNext())
+			if(!it.hasNext() && (indexCurrentTask != listTasks.size()))
 			{
-				break;
+				it = listServerStubs.entrySet().iterator();
 			}
 			
 			Map.Entry map2 = (Map.Entry) it.next();
@@ -246,7 +249,7 @@ public class Repartiteur {
 				currentTasks.add(listTasks.get(indexCurrentTask + i));
 				
 			}
-				indexCurrentTask += nbOpsForServer;
+				
 				
 				
 			int result1 = 0;
@@ -255,16 +258,17 @@ public class Repartiteur {
 	
 			result1 = sendTasksToServer(firstServer, currentTasks, id1);
 			result2 = sendTasksToServer(secondServer, currentTasks, id2);	
-			System.out.println(result1+ " " + result2);
+			//System.out.println(result1+ " " + result2);
 			
 			if (result1 == result2)
 			{
 				sum += result1;
-				System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
+				//System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
+				indexCurrentTask += nbOpsForServer;
 			}
 			else
 			{
-				System.out.println("Donnees non coherentes ");
+				//System.out.println("Donnees non coherentes ");
 			}
 			
 			if (indexCurrentTask == listTasks.size())
@@ -323,7 +327,7 @@ public class Repartiteur {
 				indexCurrentTask += nbOpsForServer;
 				sum += sendTasksToServer(currentServer, currentTasks, id1);
 			
-			System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
+			//System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
 			
 				if (indexCurrentTask == listTasks.size())
 				{
@@ -431,7 +435,7 @@ public class Repartiteur {
 		}
 		catch (Exception e) {e.getMessage();}
 		
-		System.out.println(listServerStubs.size());
+		System.out.println("La liste des serveurs(ID): " + listServerStubs.size());
 		
 	}
 	
@@ -451,7 +455,7 @@ public class Repartiteur {
 			e.getMessage();
 			//retirer des listes 
 			//retirer du service
-			System.out.println("LE BATARD EST DOWN 2 " + uuid);		
+			System.out.println("Le serveur" + uuid + " est ferme");		
 		}
 		return result;
 	}
@@ -467,13 +471,13 @@ public class Repartiteur {
 			
 			ServerInterface test = loadServerStub(uuid, listIDIP.get(uuid));
 			if (test == null)
-					System.out.println("LE BATARD EST DOWN 2 " + uuid);
+					System.out.println("Le serveur" + uuid + " est ferme");		
 			result =  test.sendTasks(listOps);
 			//int result =  distantServerStub.isTasksAcceptedvoid();
 		}
 		catch (Exception e) 
 		{
-			System.out.println("Le serveur est down: " + uuid);
+			System.out.println("Le serveur" + uuid + " est ferme");		
 		}		
 		
 		return result;

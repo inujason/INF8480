@@ -4,7 +4,7 @@ popd > /dev/null
 
 # Option a ajustet et ajouter pour lancer un serveur a distance.
 #  -Djava.rmi.server.hostname=mycomputer.example.com \
-#-Djava.rmi.server.hostname=132.207.12.104 \
+#-Djava.rmi.server.hostname=132.207.12.104 \p6m3o39tq
 
 java -cp "$basepath"/server.jar:"$basepath"/shared.jar \
   -Djava.rmi.server.codebase=file:"$basepath"/shared.jar \
