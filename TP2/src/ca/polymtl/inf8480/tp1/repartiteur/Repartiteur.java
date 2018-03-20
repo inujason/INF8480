@@ -27,7 +27,7 @@ public class Repartiteur {
 	private ServerInterface localServerStub = null;
 	private ServerInterface distantServerStub = null;
 	
-	private ServerServiceInterface serverServiceRepertoireStub = null;
+	private static ServerServiceInterface serverServiceRepertoireStub = null;
 	
 	public static String filename = "";
 	
@@ -35,29 +35,46 @@ public class Repartiteur {
 	
 	public static List<String> listTasks = new ArrayList<String>();
 	
+	HashMap<String, String> listIDIP = new HashMap<String, String>();
+	
 	
 	public static Integer indexCurrentTask = 0;
 	public static Integer sum = 0;
-	public static Boolean isFinished = false;
+	public static boolean isFinished = false;
 	
 	public static List<Integer> sums = new ArrayList<Integer>();
 	
+	public static boolean isSecure = false;
 	
 	public static void main(String[] args) {
 		
-		String distantHostname = null;
+		checkServerState();
 		
+		String distantHostname = null;
 		
 		if (args.length > 0) {
 			//Adresse du serveur
 			//distantHostname = args[0];
 			filename = args[0];		
+			if (args.length == 2 && args[1].equals("-s"))
+			{
+				isSecure = true;
+				System.out.println("Tasks are handled in a SECURE environment");
+			}
+			else
+			{
+				isSecure = false;
+				System.out.println("Tasks are handled in a INSECURE environment");
+			}
 		}
+		
 		
 		Repartiteur repartiteur = new Repartiteur();
 		
 		//repartiteur.connectToNameService("132.207.12.104");
 		repartiteur.connectToNameService("127.0.0.1");
+	
+		
 		repartiteur.run();
 		
 		
@@ -84,13 +101,21 @@ public class Repartiteur {
 
 	private void run() 
 	{	
-		System.out.println("RUNNING");
 		
+		checkServerState();
+		
+		System.out.println("RUNNING");
 		
 		connectToServers();
 		
+		changeServersBehaviour();
 		
-		sendTasks();
+		//try{wait(1000000);}catch(Exception e){}
+		
+		// Function temporaire sans parralelisme
+		sendTasksSequentially();
+		// Function avec parralelisme avec threads
+		//sendTasks();
 		
 		
 
@@ -138,6 +163,204 @@ public class Repartiteur {
 	}
 
 
+	private void changeServersBehaviour()
+	{
+		Iterator it = listServerStubs.entrySet().iterator();
+		while (it.hasNext())
+		{
+			ServerInterface currentServer = (ServerInterface)((Map.Entry) it.next()).getValue();
+			try
+			{	
+				// PANNE?
+				System.out.println("isSecure: " + isSecure);
+				currentServer.changeBehaviours(isSecure);
+			}
+			catch (Exception e) {e.getMessage();}	
+		}
+		
+	}
+
+	private void sendTasksSequentially()
+	{
+		readFileTask();
+		
+		
+				
+		if (!isSecure && listServerStubs.size() >= 2)
+		{
+			sendInsecurely();
+		}
+		else
+		{
+			
+			sendSecurely();
+		}
+	}
+
+	private void sendInsecurely()
+	{
+		checkServerState();
+		
+		Iterator it = listServerStubs.entrySet().iterator();
+		while (it.hasNext() && (indexCurrentTask != listTasks.size()))
+		{
+			
+			checkServerState();
+			
+			if(!it.hasNext())
+			{
+				break;
+			}
+
+			Map.Entry map1 = (Map.Entry) it.next();
+			ServerInterface firstServer = (ServerInterface) map1.getValue();
+			String id1 = map1.getKey().toString();
+						
+			if(!it.hasNext())
+			{
+				break;
+			}
+			
+			Map.Entry map2 = (Map.Entry) it.next();
+			ServerInterface secondServer = (ServerInterface) map2.getValue();
+			String id2 = map2.getKey().toString();
+			
+			int nbOpsForServer = 10;
+			
+			int nbTasksLeft = 0;
+			nbTasksLeft = (listTasks.size()) - indexCurrentTask;
+
+			if (nbTasksLeft < 10)
+				nbOpsForServer = nbTasksLeft;			
+			
+			
+			
+			while (!isTasksAccepted(firstServer, nbOpsForServer, id1))
+			{
+				nbOpsForServer--;
+			}
+			
+			List<String> currentTasks = new ArrayList<String>();
+			for ( int i = 0; i < nbOpsForServer; i++)
+			{
+				currentTasks.add(listTasks.get(indexCurrentTask + i));
+				
+			}
+				indexCurrentTask += nbOpsForServer;
+				
+				
+			int result1 = 0;
+			int result2 = 1;
+			
+	
+			result1 = sendTasksToServer(firstServer, currentTasks, id1);
+			result2 = sendTasksToServer(secondServer, currentTasks, id2);	
+			System.out.println(result1+ " " + result2);
+			
+			if (result1 == result2)
+			{
+				sum += result1;
+				System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
+			}
+			else
+			{
+				System.out.println("Donnees non coherentes ");
+			}
+			
+			if (indexCurrentTask == listTasks.size())
+			{
+				isFinished = true;
+			}
+			
+			if (!it.hasNext())
+				it = listServerStubs.entrySet().iterator();
+		}
+	}
+
+	private void sendSecurely()
+	{
+				
+		checkServerState();
+		
+		Iterator it = listServerStubs.entrySet().iterator();
+		while (it.hasNext() && (indexCurrentTask != listTasks.size()))
+		{
+			
+			if (!it.hasNext())
+			{
+				break;
+			}
+			
+			Map.Entry map1 = (Map.Entry) it.next();
+			
+			ServerInterface currentServer = (ServerInterface)map1.getValue();
+			String id1 = map1.getKey().toString();
+			
+						
+			int nbOpsForServer = 10;
+			
+			int nbTasksLeft = 0;
+			nbTasksLeft = (listTasks.size()) - indexCurrentTask;
+
+			if (nbTasksLeft < 10)
+				nbOpsForServer = nbTasksLeft;			
+			
+			
+			
+			while (!isTasksAccepted(currentServer, nbOpsForServer, id1))
+			{
+				
+				nbOpsForServer--;
+			}
+			
+			List<String> currentTasks = new ArrayList<String>();
+			for ( int i = 0; i < nbOpsForServer; i++)
+			{
+				currentTasks.add(listTasks.get(indexCurrentTask + i));
+				
+			}
+			
+				indexCurrentTask += nbOpsForServer;
+				sum += sendTasksToServer(currentServer, currentTasks, id1);
+			
+			System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
+			
+				if (indexCurrentTask == listTasks.size())
+				{
+					isFinished = true;
+				}
+			
+			if (!it.hasNext())
+				it = listServerStubs.entrySet().iterator();
+		}
+	}
+
+
+	private static void checkServerState()
+	{
+		Iterator it = listServerStubs.entrySet().iterator();
+		while (it.hasNext())
+		{
+			Map.Entry map1 = (Map.Entry) it.next();
+			ServerInterface serverToTest = (ServerInterface) map1.getValue();
+			String currentKey = map1.getKey().toString();
+			try
+			{	// Une appel RMI arbitraire
+				serverToTest.isTasksAccepted(0);
+			}
+			catch (Exception e) 
+			{
+				listServerStubs.remove(currentKey);
+				try
+				{
+				serverServiceRepertoireStub.removeServer(currentKey);
+				}
+				catch (Exception excep) {}
+				break;
+			}	
+		}
+		
+	}
 
 	private void sendTasks()
 	{
@@ -146,11 +369,12 @@ public class Repartiteur {
 		
 		readFileTask();
 		
-		
-		
+
 		Iterator it = listServerStubs.entrySet().iterator();
+		/*
 		while (it.hasNext())
 		{
+			
 			ServerInterface server = (ServerInterface)((Map.Entry) it.next()).getValue();
 			ServerThread t = new ServerThread(server);
 			t.start();
@@ -166,11 +390,11 @@ public class Repartiteur {
 		
 		while (!isFinished)
 		{
-			System.out.println(isFinished);
+			//System.out.println(isFinished);
 		}
 		System.out.println(isFinished);
 		System.out.println("FINAL SUMM : " + sum);
-		
+		*/
 	}
 
 	private void readFileTask()
@@ -189,12 +413,13 @@ public class Repartiteur {
 	
 	private void connectToServers()
 	{
+		checkServerState();
 		try
 		{					
-			HashMap<String, String> results = serverServiceRepertoireStub.getListServers();
-			System.out.println(results);
+			listIDIP = serverServiceRepertoireStub.getListServers();
+			System.out.println(listIDIP);
 			
-			Iterator it = results.entrySet().iterator();
+			Iterator it = listIDIP.entrySet().iterator();
 			while (it.hasNext())
 			{
 				Map.Entry server = (Map.Entry) it.next();
@@ -210,40 +435,55 @@ public class Repartiteur {
 		
 	}
 	
-	private boolean isTasksAccepted(ServerInterface server, int nbOfTasks)
+	private boolean isTasksAccepted(ServerInterface server, int nbOfTasks, String uuid)
 	{
 		
 		boolean result = false;
 		try
 		{					
+			
 			result =  server.isTasksAccepted(nbOfTasks);
 			//int result =  distantServerStub.isTasksAcceptedvoid();
 			
 		}
-		catch (Exception e) {e.getMessage();}		
+		catch (Exception e) 
+		{
+			e.getMessage();
+			//retirer des listes 
+			//retirer du service
+			System.out.println("LE BATARD EST DOWN 2 " + uuid);		
+		}
 		return result;
 	}
 	
-	private int sendTasksToServer(ServerInterface server, List<String> listOps)
+	private int sendTasksToServer(ServerInterface server, List<String> listOps, String uuid)
 	{
 		
 		int result = 0;
 		try
 		{					
 			// TODO: PANNE A GERER
-			result =  server.sendTasks(listOps);
+			
+			
+			ServerInterface test = loadServerStub(uuid, listIDIP.get(uuid));
+			if (test == null)
+					System.out.println("LE BATARD EST DOWN 2 " + uuid);
+			result =  test.sendTasks(listOps);
 			//int result =  distantServerStub.isTasksAcceptedvoid();
 		}
-		catch (Exception e) {e.getMessage();}		
+		catch (Exception e) 
+		{
+			System.out.println("Le serveur est down: " + uuid);
+		}		
 		
 		return result;
 	}
 
-	// TODO: Authentification du user pour le serveur a laide du service
-	
-	
+
+
+
 	// ORDRE DIMPORTAANCE DES TACHES
-	// THREADS, PANNES, MALICE(Secu ou non-secu),Authentification
+	// PANNES, THREADS, Authentification
 	
 	
 	public class ServerThread extends Thread {
@@ -259,41 +499,56 @@ public class Repartiteur {
 		while (!isFinished)
 		{
 						
-			int nbOpsForServer = 10;
+			synchronized ((Object) indexCurrentTask)
+			 {
+				synchronized ((Object) sum) 
+				{
+					synchronized ((Object) isFinished)
+					 {
+						
+						int nbOpsForServer = 10;
 			
-			int nbTasksLeft = 0;
-			//synchronized ((Object) indexCurrentTask) {
-			nbTasksLeft = (listTasks.size()) - indexCurrentTask;
-			//}
-			if (nbTasksLeft < 10)
-				nbOpsForServer = nbTasksLeft;			
-			
-			while (!isTasksAccepted(currentServerStub, nbOpsForServer))
-			{
-				nbOpsForServer--;
-			}
-			
-			List<String> currentTasks = new ArrayList<String>();
-			for ( int i = 0; i < nbOpsForServer; i++)
-			{
-				currentTasks.add(listTasks.get(indexCurrentTask + i));
+						int nbTasksLeft = 0;
+						//synchronized ((Object) indexCurrentTask) {
+						nbTasksLeft = (listTasks.size()) - indexCurrentTask;
+						//}
+						if (nbTasksLeft < 10)
+							nbOpsForServer = nbTasksLeft;			
+						
+						while (!isTasksAccepted(currentServerStub, nbOpsForServer, " "))
+						{
+							nbOpsForServer--;
+						}
+						
+						List<String> currentTasks = new ArrayList<String>();
+						for ( int i = 0; i < nbOpsForServer; i++)
+						{
+							currentTasks.add(listTasks.get(indexCurrentTask + i));
+							
+						}
+						//synchronized (indexCurrentTask) {
+							indexCurrentTask += nbOpsForServer;
+						//}
+						//synchronized (sum) {
+							sum += sendTasksToServer(currentServerStub, currentTasks, "  ");
+						//}
+						
+						System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
+						
+						//synchronized (isFinished) {
+							if (indexCurrentTask == listTasks.size())
+							{
+								isFinished = true;
+							}
+						//}
+						
+					}
+					
+				}
 				
 			}
-			//synchronized (indexCurrentTask) {
-				indexCurrentTask += nbOpsForServer;
-			//}
-			//synchronized (sum) {
-				sum += sendTasksToServer(currentServerStub, currentTasks);
-			//}
+						
 			
-			System.out.println("Nb tasks: " + nbOpsForServer +" "+sum);
-			
-			//synchronized (isFinished) {
-				if (indexCurrentTask == listTasks.size())
-				{
-					isFinished = true;
-				}
-			//}
 		}
 	}
 }

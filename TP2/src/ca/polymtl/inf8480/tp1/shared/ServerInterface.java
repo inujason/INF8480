@@ -11,5 +11,7 @@ public interface ServerInterface extends Remote {
 	
 	boolean isTasksAccepted(int u) throws RemoteException;
 	int sendTasks(List<String> listOps) throws RemoteException;
-
+	void changeBehaviours(boolean security) throws RemoteException;
+	
+	void testConnection() throws RemoteException;
 }

@@ -1,5 +1,9 @@
 package ca.polymtl.inf8480.tp1.server;
 
+
+import java.rmi.AccessException;
+import java.rmi.NotBoundException;
+
 import java.rmi.ConnectException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -44,14 +48,16 @@ import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.*;
+import java.util.Timer; import java.util.TimerTask;
 
-
+import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 import ca.polymtl.inf8480.tp1.shared.ServerServiceInterface;
 
 public class ServerService implements ServerServiceInterface {
 
 
-	HashMap<String, String> listServers = new HashMap<String, String>();
+	public static HashMap<String, String> listServers = new HashMap<String, String>();
 
 
 	public static void main(String[] args) 
@@ -59,6 +65,90 @@ public class ServerService implements ServerServiceInterface {
 		ServerService server = new ServerService();
 	
 		server.run();
+		
+		
+		while (true)
+		{
+			String tmp = "";
+			try
+			{					
+				
+				Iterator it = listServers.entrySet().iterator();
+				while (it.hasNext())
+				{
+					Map.Entry serverToCheck = (Map.Entry) it.next();
+					String id = (String) serverToCheck.getKey();
+					tmp = id;
+					String ip = (String) serverToCheck.getValue();
+					ServerInterface stub = loadServerStub(id, ip);
+					try 
+					{
+						stub.testConnection();
+					}
+					catch (Exception e) 
+					{
+						listServers.remove(tmp);
+					}
+					
+					
+
+				}
+			}
+			catch (Exception e) {e.getMessage();}
+			
+			System.out.println(listServers);
+		}
+		
+		/*
+		new java.util.Timer().schedule( 
+			new java.util.TimerTask() {
+				@Override
+				public void run() {
+					try
+					{					
+						
+						Iterator it = listServers.entrySet().iterator();
+						while (it.hasNext())
+						{
+							Map.Entry server = (Map.Entry) it.next();
+							String id = (String) server.getKey();
+							String ip = (String) server.getValue();
+							ServerInterface stub = loadServerStub(id, ip);
+							if (stub == null)
+							{
+								listServers.remove(id);
+							}
+						}
+					}
+					catch (Exception e) {e.getMessage();}
+					
+					System.out.println(listServers);
+				}
+			}, 
+			1000
+		);
+		*/
+		
+	}
+	
+	
+	private static ServerInterface loadServerStub(String id, String hostname) {
+		
+		ServerInterface stub = null;
+	
+		try {
+			Registry registry = LocateRegistry.getRegistry(hostname);
+			stub = (ServerInterface) registry.lookup(id);
+		} catch (NotBoundException e) {
+			System.out.println("Erreur: Le nom '" + e.getMessage()
+					+ "' n'est pas défini dans le registre.");
+		} catch (AccessException e) {
+			System.out.println("Erreur: " + e.getMessage());
+		} catch (RemoteException e) {
+			System.out.println("Erreur: " + e.getMessage());
+		}
+
+		return stub;
 	}
 
 	public ServerService() {
@@ -88,7 +178,7 @@ public class ServerService implements ServerServiceInterface {
 	}
  
  
-	
+
 	
 
 
@@ -125,7 +215,12 @@ public class ServerService implements ServerServiceInterface {
 		listServers.put(serverID, hostname);
 	}
 	
-	
+	@Override
+	public void removeServer(String uuid) throws RemoteException
+	{
+		listServers.remove(uuid);
+		System.out.println("Serveur : " + uuid + " a ete supprimer du service");
+	}
 
 	
 }

@@ -67,8 +67,8 @@ public class Server implements ServerInterface {
 
 
 
-
-
+	private static boolean isSecure = true;
+	private static int tauxMalice = 0;
 
 
 
@@ -80,15 +80,29 @@ public class Server implements ServerInterface {
 	public static Random random;
 	static int qMaxCapacity;
 	
-	static boolean isSecured = true;
 
 	public static void main(String[] args) 
 	{
+		System.out.println("ARGRS " + args.length);
+		
+		if (args.length > 0) {	
+
+			tauxMalice = Integer.parseInt(args[0]);
+				
+			
+		}
+		
+		
+		
 		Server server = new Server();
 		
 		random = new Random();
 		
 		qMaxCapacity = 3 + Math.abs(random.nextInt()%3);
+		
+		System.out.println("Service avec taux de malice de: " + tauxMalice);
+		System.out.println("Capacite de taches du serveur: " + qMaxCapacity);
+		
 		server.run();
 		registerToServerService();
 	}
@@ -108,7 +122,6 @@ public class Server implements ServerInterface {
 
 			Registry registry = LocateRegistry.getRegistry();
 			registry.rebind(id, stub);
-			System.out.println("Server ready. QMax= " + qMaxCapacity);
 		} catch (ConnectException e) {
 			System.err
 					.println("Impossible de se connecter au registre RMI. Est-ce que rmiregistry est lancé ?");
@@ -138,8 +151,6 @@ public class Server implements ServerInterface {
 		} catch (RemoteException e) {
 			System.out.println("Erreur: " + e.getMessage());
 		}
-		
-		System.out.println("Service is: " + serverServiceRepertoireStub);
 
 		try {
 		//System.out.println(InetAddress.getLocalHost().getHostAddress());
@@ -164,7 +175,7 @@ public class Server implements ServerInterface {
 		if (numberofTasks <= qMaxCapacity)
 			return true;
 		int tauxRefus = ((numberofTasks - qMaxCapacity)/(5*qMaxCapacity))*100;
-		int r = random.nextInt()%100;
+		int r = Math.abs(random.nextInt()%100);
 		if (r < tauxRefus)
 			return false;
 		else
@@ -178,6 +189,37 @@ public class Server implements ServerInterface {
 	 */
 	@Override
 	public int sendTasks(List<String> listOps) throws RemoteException
+	{
+	
+		
+		
+		if (isSecure == true)
+		{
+			
+			return sendSecureTasks(listOps);
+		}
+		else
+		{
+			// System.out.println("tauxMalice: " + tauxMalice);
+			if (tauxMalice > 0)
+			{
+				System.out.println("SECURITY " + isSecure + " tauxMalice: " + tauxMalice);
+				int r = Math.abs(random.nextInt()%100);
+				// System.out.println("r: " + r + " TauxMalice:" + tauxMalice);
+				if (r < tauxMalice)
+				{
+					return random.nextInt();
+				}
+				else
+					return sendSecureTasks(listOps);
+			}
+			else
+				return sendSecureTasks(listOps);
+		}
+	}
+	
+	
+	public int sendSecureTasks(List<String> listOps) throws RemoteException
 	{
 		int sum = 0;
 		//Operations operationDOER = new Operations();
@@ -193,24 +235,34 @@ public class Server implements ServerInterface {
 			if (op.equals("pell"))
 			{
 				value = pell(operand);
-				System.out.println("VALUE " + value);
+				//System.out.println("VALUE " + value);
 			}
 			if (op.equals("prime"))
 			{
 				value = prime(operand);
-				System.out.println("VALUE " + value);
+				//System.out.println("VALUE " + value);
 			}
 			
 			
 			sum += value %4000;
-			System.out.println(value);
-			System.out.println("sum " + sum);
+			//System.out.println(value);
+			//System.out.println("sum " + sum);
 		}
 		
-		System.out.println("Final " + sum);
+		//System.out.println("Final " + sum);
 					
 		return sum;
 	}
+	
+	
+	@Override
+	public void changeBehaviours(boolean security) throws RemoteException
+	{
+		
+		isSecure = security;
+	}
+	
+	
 	
 	public static int pell(int x) {
 		if (x == 0)
@@ -244,5 +296,12 @@ public class Server implements ServerInterface {
 		
 		return true;		
 	}
+	
+	@Override
+	public void testConnection() throws RemoteException
+	{
+		
+	}
+	
 	
 }

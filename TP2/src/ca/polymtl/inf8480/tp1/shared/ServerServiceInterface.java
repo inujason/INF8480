@@ -14,4 +14,7 @@ public interface ServerServiceInterface extends Remote {
 	void authenticateRepartiteur(/*Repartiteur repartiteur*/) throws RemoteException;
 
 	void registerServer(String serverID, String hostname) throws RemoteException;
+	
+	void removeServer(String uuid) throws RemoteException;
+
 }
