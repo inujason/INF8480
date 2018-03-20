@@ -66,7 +66,7 @@ public class ServerService implements ServerServiceInterface {
 	
 		server.run();
 		
-		
+		//Boucle continuellement afin de verfier si les serveurs connu sont toujours actifs 
 		while (true)
 		{
 			String tmp = "";
@@ -98,36 +98,6 @@ public class ServerService implements ServerServiceInterface {
 			
 			System.out.println(listServers);
 		}
-		
-		/*
-		new java.util.Timer().schedule( 
-			new java.util.TimerTask() {
-				@Override
-				public void run() {
-					try
-					{					
-						
-						Iterator it = listServers.entrySet().iterator();
-						while (it.hasNext())
-						{
-							Map.Entry server = (Map.Entry) it.next();
-							String id = (String) server.getKey();
-							String ip = (String) server.getValue();
-							ServerInterface stub = loadServerStub(id, ip);
-							if (stub == null)
-							{
-								listServers.remove(id);
-							}
-						}
-					}
-					catch (Exception e) {e.getMessage();}
-					
-					System.out.println(listServers);
-				}
-			}, 
-			1000
-		);
-		*/
 		
 	}
 	
@@ -190,7 +160,8 @@ public class ServerService implements ServerServiceInterface {
 	@Override
 	public HashMap<String, String> getListServers() throws RemoteException
 	{
-			return listServers;
+		//retourne la liste des serveurs connu par le service de noms	
+		return listServers;
 	}
 	
 	 /*
@@ -212,12 +183,14 @@ public class ServerService implements ServerServiceInterface {
 	@Override
 	public void registerServer(String serverID, String hostname) throws RemoteException
 	{
+		//Ajoute le serveur qui vient de se connecter a la liste 
 		listServers.put(serverID, hostname);
 	}
 	
 	@Override
 	public void removeServer(String uuid) throws RemoteException
 	{
+		//Retire le serveur avec le uuid passé en parametre dans la liste des serveurs en service
 		listServers.remove(uuid);
 		System.out.println("Serveur : " + uuid + " a ete supprimer du service");
 	}
