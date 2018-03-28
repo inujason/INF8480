@@ -1,0 +1,2 @@
+python server.py
+wget https://raw.githubusercontent.com/houssemmh/INF4410-TP3/master/server.py
