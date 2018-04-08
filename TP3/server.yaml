@@ -1,6 +1,5 @@
 #
-# This is a hello world HOT template just defining a single compute
-# server.
+# This is a server HOT template defining a single compute server.
 #
 heat_template_version: 2013-05-23
 
@@ -12,30 +11,15 @@ parameters:
   key_name:
     type: string
     description: Name of an existing key pair to use for the server
-    constraints:
-      - custom_constraint: nova.keypair
+    default: cloudKey
   flavor:
     type: string
     description: Flavor for the server to be created
-    default: m1.small
-    constraints:
-      - custom_constraint: nova.flavor
+    default: INF4410-mini
   image:
     type: string
     description: Image ID or image name to use for the server
-    constraints:
-      - custom_constraint: glance.image
-  admin_pass:
-    type: string
-    description: Admin password
-    hidden: true
-    constraints:
-      - length: { min: 6, max: 8 }
-        description: Password length must be between 6 and 8 characters
-      - allowed_pattern: "[a-zA-Z0-9]+"
-        description: Password must consist of characters and numbers only
-      - allowed_pattern: "[A-Z]+[a-zA-Z0-9]*"
-        description: Password must start with an uppercase character
+    default: INF4410-Ubuntu-trusty-mini
   db_port:
     type: number
     description: Database port number
@@ -51,13 +35,16 @@ resources:
       key_name: { get_param: key_name }
       image: { get_param: image }
       flavor: { get_param: flavor }
-      admin_pass: { get_param: admin_pass }
       user_data_format: RAW
       user_data:
         str_replace:
           template: |
             #!/bin/bash
+            echo "Starting up server"
+            echo "Port: "
             echo db_port
+            wget https://raw.githubusercontent.com/houssemmh/INF4410-TP3/master/server.py
+            python server.py
           params:
             db_port: { get_param: db_port }
 

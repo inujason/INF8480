@@ -9,40 +9,57 @@ parameters:
   image:
     type: string
     description: Image utilisee pour les serveurs
-    default:
+    default: INF4410-Ubuntu-trusty-mini
     #A completer
 
   flavor:
     type: string
     description: Flavor utilisee par les serveurs
-    default:
+    default: INF4410-mini
     #A completer
 
   subnet_id:
     type: string
     description: Sous-reseau dans lequel le load balancer sera situe
-    default:
+    default: inf4410-net
     #A completer
 
 resources:
   server_nodes:
       type: OS::Heat::ResourceGroup
       properties:
-      #A completer
-
-
+      	count: 3
+		resource_def:
+			type: OS::Nova::server
+			#?? Comment associer notre HOT server template ??
+			
+			
   mypool:
       type: OS::Neutron::Pool
+      properties:
+       	protocol: HTTP
+		monitors: [{get_resource: monitor}]
+		subnet_id: {get_param: subnet_id}
+		lb_method: ROUND_ROBIN
+		vip:
+			protocol_port: 80
       #A completer
 
   loadbalancer:
-      type: OS::Neutron::LoadBalancer
+      type: OS::Neutron::LoadBalancer 
+      properties:
+      	protocol_port: 80
+   	  	pool_id: {get_resource: pool}
       #A completer
 
   monitor:
       type: OS::Neutron::HealthMonitor
       properties:
-      #A completer
+		type: HTTP
+		delay: 10
+		max_retries: 1
+		timeout: 4	
+  #A completer
 
 
 outputs:
