@@ -4,8 +4,9 @@
 heat_template_version: 2013-05-23
 
 description: >
-  Hello world HOT template that just defines a single server.
-  Contains just base features to verify base HOT support.
+  Server HOT template that just defines a single server.
+  Connects to the port 8000 with HTTP protocol of the instance
+  A requests from it gives you the A hello from the machine and its name.
 
 parameters:
   key_name:
@@ -36,6 +37,7 @@ resources:
       image: { get_param: image }
       flavor: { get_param: flavor }
       user_data_format: RAW
+      networks: [{ "network": inf4410-net}]
       user_data:
         str_replace:
           template: |

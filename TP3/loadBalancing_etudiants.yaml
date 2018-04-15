@@ -6,6 +6,11 @@ parameters:
 
   #A completer
 
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the server
+    default: cloudKey
+    
   image:
     type: string
     description: Image utilisee pour les serveurs
@@ -18,47 +23,71 @@ parameters:
     default: INF4410-mini
     #A completer
 
-  subnet_id:
+  subnet_name:
     type: string
     description: Sous-reseau dans lequel le load balancer sera situe
-    default: inf4410-net
+    default: inf4410-subnet
     #A completer
+    
+  db_port:
+    type: number
+    description: Database port number
+    default: 50000
+    constraints:
+      - range: { min: 40000, max: 60000 }
+        description: Port number must be between 40000 and 60000
 
 resources:
   server_nodes:
       type: OS::Heat::ResourceGroup
       properties:
-      	count: 3
-		resource_def:
-			type: OS::Nova::server
-			#?? Comment associer notre HOT server template ??
-			
-			
+        count: 2
+        resource_def:
+          type: OS::Nova::Server
+          properties:
+              name: my_server_%index%
+              key_name: { get_param: key_name }
+              image: { get_param: image }
+              flavor: { get_param: flavor }
+              user_data_format: RAW
+              networks: [{ "network": inf4410-net}]
+              user_data:
+                  str_replace:
+                    template: |
+                      #!/bin/bash
+                      echo "Starting up server"
+                      wget https://raw.githubusercontent.com/houssemmh/INF4410-TP3/master/server.py
+                      python server.py
+                    params:
+                      db_port: { get_param: db_port }                          
+      #A completer
+      
   mypool:
       type: OS::Neutron::Pool
       properties:
-       	protocol: HTTP
-		monitors: [{get_resource: monitor}]
-		subnet_id: {get_param: subnet_id}
-		lb_method: ROUND_ROBIN
-		vip:
-			protocol_port: 80
+          protocol: HTTP
+          monitors: [{get_resource: monitor}]
+          subnet: {get_param: subnet_name}
+          lb_method: ROUND_ROBIN
+          vip:
+            protocol_port: 80
       #A completer
 
   loadbalancer:
       type: OS::Neutron::LoadBalancer 
       properties:
-      	protocol_port: 80
-   	  	pool_id: {get_resource: pool}
+        members: { get_attr: [server_nodes, refs] }
+        protocol_port: 8000
+        pool_id: {get_resource: mypool}
       #A completer
 
   monitor:
       type: OS::Neutron::HealthMonitor
       properties:
-		type: HTTP
-		delay: 10
-		max_retries: 1
-		timeout: 4	
+        type: HTTP
+        delay: 10
+        max_retries: 1
+        timeout: 4	
   #A completer
 
 

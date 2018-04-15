@@ -12,12 +12,12 @@ export OS_AUTH_URL=http://pingouin.info.polymtl.ca:5000/v2.0
 
 # With the addition of Keystone we have standardized on the term **tenant**
 # as the entity that owns the resources.
-export OS_TENANT_ID=6d236dc6c9a74d8685848ff1e466a8c5
-export OS_TENANT_NAME="INF8480-39-projet"
+export OS_TENANT_ID=35cfda19fdf44a12b34b495742f01b28
+export OS_TENANT_NAME="INF8480-47-projet"
 
 # In addition to the owning entity (tenant), openstack stores the entity
 # performing the action as the **user**.
-export OS_USERNAME="INF8480-39"
+export OS_USERNAME="INF8480-47"
 
 # With Keystone you pass the keystone password.
 echo "Please enter your OpenStack Password: "
